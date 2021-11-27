@@ -1,0 +1,23 @@
+---
+output: html_document
+---
+
+#### Instructions
+
+1. **Check Emails**: If any lines appear, likely the email listed in below spreadsheets does not match the one on file in Farmigo
+
+2. **Not Filled**: The delivery site has restrictions on this product. Check [Pickup Site Key](https://docs.google.com/spreadsheets/d/1ayE84QiGlQVmCR1TDnWlnZ5feejVRQgZVk-nmWrKcaM/edit#gid=0) and [Product KEYS - Product List](https://docs.google.com/spreadsheets/d/1-8f7wh3ebdb7KpcCc__VfqHoKCkL0VoIiiruBCzckXw/edit#gid=305766482) spreadsheets for details
+
+3. **Unmatched Products**: Products listed here should be added to the [Product KEYS - Product List](https://docs.google.com/spreadsheets/d/1-8f7wh3ebdb7KpcCc__VfqHoKCkL0VoIiiruBCzckXw/edit#gid=305766482) spreadsheet
+
+
+
+<i class="fas fa-info-circle"></i><span class='prompt-message'>Check the `source` column in each tab to see which spreadsheet(s) the orders are from. If it says "Product KEYS", go to [Product KEYS](https://docs.google.com/spreadsheets/d/1-8f7wh3ebdb7KpcCc__VfqHoKCkL0VoIiiruBCzckXw/edit#gid=0) and select a shiny_category for the product.</span>
+
+| source | Google Sheet |
+| :----: | :----------- |
+| Store | [GetHookedTest](https://docs.google.com/spreadsheets/d/1SbPNZFC83TgEyHsjxSxYamzoptPfJyi_amIQn6dCoxM/edit?ts=5f4d4dbc#gid=0) | 
+| Saved | [Special Order Feed - Saved Orders](https://docs.google.com/spreadsheets/d/1WIijF4CsRumAiOl50OMJUH6GM6ZKUiArhxjLiOiT9Lk/edit#gid=1611643887) | 
+| Standing | [Standing Orders](https://docs.google.com/spreadsheets/d/1_nIfoGe_-K4UxGcFmeJTq33S2l3EGXiinO6Fw0JRpx8/edit#gid=0) | 
+| Referral | [Referral Shares](https://docs.google.com/spreadsheets/d/1HbzWmgYvx0659hwONIiJ_a_D63sObaHKTiuKWrXcvwE/edit#gid=973159798) | 
+| Flashsales | [Active Deliveries - Flashsales](https://docs.google.com/spreadsheets/d/1M7JKNNb-OUs8pFe6mMPC5BZqG09aLOlRcRG9HpReyoY/edit#gid=0) |
