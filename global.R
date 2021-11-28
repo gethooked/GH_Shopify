@@ -61,7 +61,12 @@ customer_sync <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "1031783765"), 
 ##Assigning column names and data structure to avoid errors
 shopify_orders  <- order_sync %>% 
   clean_colname(type = "Orders") %>% 
-  mutate_at(vars(quantity, weight_lb, price), ~as.numeric(.))
+  mutate_at(vars(quantity, weight_lb, price), ~as.numeric(.)) %>%
+  mutate(product_tags = paste(product_tags, ",", sep = "")) %>% 
+  #route notation for checklists if order is "dry goods"
+  mutate(route_notation = ifelse(str_detect(product_tags, "Packing Method:Bag"), "yes", ""),
+         share_class = str_extract(product_tags, '(?<=Type:)[[:alpha:]]+(?=\\,)')) %>% 
+  mutate(share_type = product_name)
 
 shopify_customers <- customer_sync %>% 
   clean_colname(type = "Customer") %>% 
@@ -81,14 +86,14 @@ pickup_sites_key <- subscription %>%
   select(location, pickup_site, pickup_site_label, delivery_day, production_day)
   
 
-product_key <- shopify_orders %>% 
-  select(product_name, product_tags) %>% 
-  mutate(route_notation = ifelse(str_detect(product_tags, "Dry Goods"), "yes", "")) %>% 
-  mutate(share_class = str_remove(product_tags, "Dry Goods Restriction, Pantry, ")) %>% 
-  rename(share_type = product_name) %>% 
-  unique()
+# product_key <- shopify_orders %>% 
+#   select(product_name, product_tags) %>% 
+#   mutate(route_notation = ifelse(str_detect(product_tags, "Dry Goods"), "yes", "")) %>% 
+#   mutate(share_class = str_remove(product_tags, "Dry Goods Restriction, Pantry, ")) %>% 
+#   rename(share_type = product_name) %>% 
+#   unique()
   
-
+#share_type, share_class, route_notation
 # 4.1 Main Shares & Species Assignment ==========================================================
 
 ## * Share Size Variant & Species Options --------------------------------------------------------
@@ -228,7 +233,7 @@ flashsales <- rbind_active_deliveries(type = "Flashsales") %>%
   filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
   mutate(delivery_day = as.character(delivery_day)) %>%
   group_by(delivery_day, name) %>%
-  left_join(product_key,
+  left_join(shopify_orders %>% select(share_type, share_class, route_notation, product_tags) %>% unique(),
             by = "share_type") %>%
   ungroup() %>% 
   mutate(check = " ") %>%
