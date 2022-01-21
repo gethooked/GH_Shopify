@@ -100,6 +100,21 @@ shopify_orders  <- order_sync %>%
 
 ## * Share Size Variant & Species Options --------------------------------------------------------
 
+#For adding share size (weight/piece count etc...) to species assignment labels
+share_size_variant_list<- Product_KEYS$Share_Size_Variant %>% 
+  select(type, share_size = size, label_weight)
+
+fillet_options <- Product_KEYS$Species_Options %>%
+  select(options, type = option_type) %>% 
+  left_join(share_size_variant_list) %>% 
+  filter(!is.na(label_weight)) %>% 
+  select(-type) %>% 
+  select(type = options, share_size, label_weight)
+
+share_size_list <- rbind(share_size_variant_list, fillet_options) %>% 
+  select(species_lable = type, share_size, label_weight)
+
+
 share_size_variant <- Product_KEYS$Share_Size_Variant %>%
   filter(size_key == "share") %>%
   filter(size %in% c("Small", "Medium", "Large", "ExtraLarge"))%>%

@@ -541,8 +541,9 @@ Species_Assignment_Server <- function(id) {
           mutate(customer_name = ifelse(str_detect(pickup_site_labels, "Home Delivery"), 
                                "Home Delivery", customer_name)) %>%
           mutate(spacer_1 = "~", spacer_2 = "~", spacer_3 = "~~~~~~~~~~") %>%
-          mutate(instructions = "") %>%
-          select(customer_name, spacer_1, share_size, species, spacer_1, caught_by, gear_type, 
+          left_join(share_size_list) %>% 
+          mutate(share_size_label = paste0(as.character(share_size), " ", "(", as.character(label_weight), ")")) %>%
+          select(customer_name, spacer_1, share_size_label, species, spacer_1, caught_by, gear_type, 
                  landing_port, spacer_2, expiration_day, instructions, spacer_3, 
                  pickup_site_label, next_delivery, home_delivery_name, delivery_day) %>% 
           arrange(next_delivery, species, share_size, pickup_site_label, 
