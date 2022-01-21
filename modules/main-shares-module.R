@@ -124,7 +124,6 @@ Main_Shares_Server <- function(id) {
       weekly_species4 <- reactive({
         get_weekly_species(weekly_species_prev = weekly_species3(), 
                            species_selected = species_select4$species(),
-#                           schedule_selected = species_select4$schedule(), 
                            sites_selected = species_select4$sites(),
                            is_1st_species = FALSE) 
       })
@@ -133,7 +132,7 @@ Main_Shares_Server <- function(id) {
       subs_all <- reactive({
         temp <- weekly_species4() %>%
 #        temp2<-weekly_species11 %>% 
-          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "email") %>% 
+          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>% 
           mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Pick")), 
                                          as.character(share_upgrade), ""))%>%
           mutate(species = if_else(is.na(species_choice) | species_choice == "", 
@@ -145,14 +144,13 @@ Main_Shares_Server <- function(id) {
       # Tab: All Main Shares ----------------------------------------------------------------
       weekly_species <- reactive({
         subs_all() %>% 
-          select(name, species, share_size, pickup_site, delivery_day) %>% 
+          select(customer_name, species, share_size, pickup_site, delivery_day) %>% 
           arrange(delivery_day, species, share_size, pickup_site)
       })
       
       # Tab: Share Counts -------------------------------------------------------------------
       share_count <- reactive({
         weekly_species() %>%
-          filter(share_size != "FishHead") %>% 
           group_by(delivery_day, share_size, species) %>% 
           tally() %>% 
           arrange(delivery_day, species)

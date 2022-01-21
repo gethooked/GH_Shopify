@@ -4,101 +4,105 @@ clean_colname <- function(df, type) {
   
 
   if(type == "Orders") {
-    colName1 <- "Order ID"
     
-    colNames <- c(
-      "order_id", "line_item_id", "shopify_order", "order_date", "order_time", "email", 
-      "product_name", "variant_name",  "quantity", "order_tags", "vendor", "customer_name", 
-      "opt_out", "location", "pickup_site", "source",    "line_item_name", "weight_lb", 
-      "product_tags", "sku", "price", "order_note", "order_canceled"
-    )
+      colNames <- c(
+      "order_id", 
+      "order_date", 
+      "order_time", 
+      "order_day", 
+      "customer_name",
+      "customer_email",
+      "product_name", 
+      "variant_name",
+      "product_type",
+      "product_vendor",
+      "quantity", 
+      "sku", 
+      "weight_lb", 
+      "product_tag",
+      "variant_price",
+      "order_tag"
+      
+      )
     
-    position <- c(1:23)
+    position <- c(1:16)
 
   }
   else {
-    colName1 <- "Customer ID"
-    colNames <- c(
-      "customer_id", "name", "email", "address", "city", "state", 
-      "country", "zip", "phone", "member_tags", "note")
-    
-    position <- c(1:11)
+
+      colNames <- c(
+        "order_id", 
+        "order_date", 
+        "order_time", 
+        "order_day",
+        "customer_email",
+        "subscription_size",
+        "product_tag",
+        "customer_tag",
+        "order_tag",
+        "customer_name",
+        "address",
+        "city",
+        "state",
+        "zip",
+        "phone",
+        "notes",
+        "sub_1",
+        "sub_2",
+        "sub_3",
+        "sub_4",
+        "sub_5"
+        )
       
+      position <- c(1:21)
   }
   
   df %>%
     select(all_of(position)) %>% 
-    `colnames<-`(colNames) %>% 
-    filter(!str_detect(colName1, regex(.[[1]], ignore_case = T))) 
+    `colnames<-`(colNames) 
   
 }
 
 
 
-# clean_oyster: Combine rows of Oyster orders (Live King Tide Oysters) into a single row  ----------------
-# App(s): Special Orders & Early Deadline Orders
-# clean_oyster <- function(df) {
-#   df %>%
-#     
-#     mutate(is_oyster = str_detect(tolower(share_type), "oysters"))%>%
-#     
-#     group_by(name, share_type) %>%
-#     mutate(row_index = min(1, n()):n()) %>% 
-#     
-#     ## Live King Tide Oysters - $2 -> Live King Tide Oysters - $2 x 3
-#     mutate(order = ifelse(is_oyster, paste(order, "x", n()), order)) %>% 
-#     
-#     ## calculate the total price for oyster orders
-#     mutate(price = ifelse(is_oyster, price * n(), price)) %>% ungroup() %>%
-#     
-#     ## for oyster orders, only keep the first row
-#     filter(!is_oyster | row_index == 1) %>%
-#     select(-row_index, -is_oyster)
-# }
-
-
 # clean_subscription: data cleaning for shopify_orders -------------------------------------
 # App(s): Main Shares, Species Assignment
+
+
 
   
 clean_subscription <- function(df) {
   
   df %>%
-    #selecting only subscription/recharge orders
-    filter(str_detect(tolower(order_tags), "subscription"),
-           str_detect(tolower(product_name), "share"),
-           is.na(order_canceled)) %>% 
+
+    #clean and separate subscription properties, location, pickup_site, opt_outs
+    gather(key = "position", value = "sub_value", sub_1:sub_5) %>% 
+    separate(sub_value, c("key", "value"), sep = ":") %>% 
+    mutate(key_name = ifelse(str_detect(key, "location"), "location",
+                             ifelse(str_detect(key, "Site"), "pickup_site",
+                                    ifelse(str_detect(key, "seafood exclusions"), "opt_out", NA)))) %>% 
+    select(-position, -key) %>% 
+    filter(!is.na(key_name)) %>%
+    separate(value, "value_trim", sep = "\\(", extra = "drop") %>% 
+    spread(key_name, value_trim) %>%
+    
+    #pickup site label format
+    mutate(pickup_site_label = ifelse(str_detect(pickup_site, regex("Home Delivery", ignore_case = T)), paste0("Home Delivery - ", location), paste0(pickup_site, " - ",location))) %>% 
+    mutate(pickup_site = ifelse(str_detect(pickup_site_label, "Home Delivery | Topa"), pickup_site_label, pickup_site)) %>%
     
     #getting share_size
-    separate(product_name, "share_size", sep = " Share") %>%
+    separate(subscription_size, "share_size", sep = " Share") %>%
+    mutate(share_size = ifelse(share_size == "XL", "ExtraLarge", share_size)) %>% 
     
-    mutate(shopify_order = as.numeric(gsub("#", "", shopify_order))) %>%
+    #get delivery day
+    mutate(delivery_day = str_extract(customer_tag, "Tuesday|Wednesday|Thursday")) %>% 
+    mutate(delivery_day = ifelse(location == "Los Angeles ", "LA", delivery_day)) %>% 
+    mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>% 
     
-
-    select(shopify_order,
-           email, 
-           share_size, 
-           opt_out,
-           location,
-           pickup_site) %>% 
-    
-    #delivery locations
-    mutate(pickup_site = ifelse(str_detect(pickup_site, regex('home delivery', ignore_case = T)), "Home Delivery", pickup_site)) %>%
-    separate(pickup_site, "pickup_site", sep = " \\(") %>%
-    mutate(pickup_site_label = ifelse(str_detect(pickup_site, regex('home delivery', ignore_case = T)), paste(pickup_site, location, sep = " - "), pickup_site)) %>% 
-    left_join(delivery_day %>% select(location,	pickup_site,	delivery_day, production_day)) %>% 
-
-    #combining delivery day with location
-    mutate_if(is.character, str_trim) %>% 
-    mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>%
-
-    #share_type. might not be necessary
-    mutate(share_type = "Fillet") %>%
     mutate(opt_out = gsub("No ", "", opt_out)) %>% 
+    mutate(share_type = "Fillet") %>%
     
-    arrange(-shopify_order) %>%
-    filter(duplicated(email) == FALSE) %>% 
-    select(-shopify_order)
+    mutate_if(is.character, str_trim) 
     
 }
 

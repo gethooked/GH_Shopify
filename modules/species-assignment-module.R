@@ -14,6 +14,13 @@ Species_Assignment_UI <- function(id) {
         sidebarLayout(
           sidebarPanel(
             
+            h4("Data Source"),
+            tags$div(
+              a("Shopify Orders - Subscriptions",
+                href = "https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=16853773")
+            ),
+            br(),
+            
             h3("Step 1: Assign"),
             tags$div(
               "See ",
@@ -44,6 +51,18 @@ Species_Assignment_UI <- function(id) {
               species_selection_UI(ns("species_select4"), 4)
             ),
             
+            conditionalPanel(
+              condition = "input['species_select4-species'] != 'None'",
+              ns = ns,
+              species_selection_UI(ns("species_select5"), 5)
+            ),
+            
+            conditionalPanel(
+              condition = "input['species_select5-species'] != 'None'",
+              ns = ns,
+              species_selection_UI(ns("species_select6"), 6)
+            ),
+            
             actionButton(
               ns("clear_all"),
               "Clear All Species Selections",
@@ -57,15 +76,14 @@ Species_Assignment_UI <- function(id) {
             selectInput(
               ns("weight"),
               label = paste("Choose the share type. Either choice will also ensure",
-                            "that the selected species are matched with applicable share weight/number",
-                            "and 'Lobster' with the number of lobster as given by customers in the form:"),
+                            "that the selected species are matched with applicable share weight/number"),
               choices = c("Fillet" = "fillet", "Harbinger Meal Tray" = "harbinger"),
               selected = "Fillet"
             ),
             
             br(),
             
-            h3("Step 4: Modify"),
+            h3("Step 3: Modify"),
             
             modifiy_UI(ns("modify1"), 1),
             
@@ -112,31 +130,31 @@ Species_Assignment_UI <- function(id) {
             ),
             
             conditionalPanel(
-              condition = "input['modify7-species'] != 'None'",
+              condition = "input['modify8-species'] != 'None'",
               ns = ns,
               modifiy_UI(ns("modify9"), 9)
             ),
             
             conditionalPanel(
-              condition = "input['modify7-species'] != 'None'",
+              condition = "input['modify9-species'] != 'None'",
               ns = ns,
               modifiy_UI(ns("modify10"), 10)
             ),
             
             conditionalPanel(
-              condition = "input['modify7-species'] != 'None'",
+              condition = "input['modify10-species'] != 'None'",
               ns = ns,
               modifiy_UI(ns("modify11"), 11)
             ),
             
             conditionalPanel(
-              condition = "input['modify7-species'] != 'None'",
+              condition = "input['modify11-species'] != 'None'",
               ns = ns,
               modifiy_UI(ns("modify12"), 12)
             ),
             
             
-            h3("Step 5: Download"),
+            h3("Step 4: Download"),
             
             strong("Main Share Labels"),
             uiOutput(ns("downloadLabels")),
@@ -188,11 +206,23 @@ Species_Assignment_Server <- function(id) {
       # Below are in reversed order (4 -> 1) because "Clear Last Species" button
       # is based on the newest species
       
+      species_select6 <- species_selection_Server(
+        "species_select6", 
+        is_species_assignment = TRUE,
+        clear_all = clear_all)
+
+      species_select5 <- species_selection_Server(
+        "species_select5", 
+        is_species_assignment = TRUE,
+        next_species = species_select6$species, 
+        clear_all = clear_all)      
+            
       species_select4 <- species_selection_Server(
         "species_select4", 
         is_species_assignment = TRUE,
+        next_species = species_select5$species, 
         clear_all = clear_all)
-      
+            
       species_select3 <- species_selection_Server(
         "species_select3", 
         is_species_assignment = TRUE,
@@ -248,10 +278,26 @@ Species_Assignment_Server <- function(id) {
                            is_1st_species = FALSE)
       })
       
+      weekly_species5 <- reactive({
+        get_weekly_species(weekly_species_prev = weekly_species4(), 
+                           species_selected = species_select5$species(),
+                           sites_selected = species_select5$sites(),
+                           share_size_selected = species_select5$share_size(),
+                           is_1st_species = FALSE)
+      })
+      
+      weekly_species6 <- reactive({
+        get_weekly_species(weekly_species_prev = weekly_species5(), 
+                           species_selected = species_select6$species(),
+                           sites_selected = species_select6$sites(),
+                           share_size_selected = species_select6$share_size(),
+                           is_1st_species = FALSE)
+      })
+      
       
       subs_all <- reactive({
-        temp <- weekly_species4() %>%
-          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "email") %>%
+        temp <- weekly_species6() %>%
+          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>%
           mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Stick")), 
                                          as.character(share_upgrade), "")) %>% 
           mutate(species = ifelse(species_choice == "", species, str_remove(species_choice, "(?=\\-).+")),
@@ -265,8 +311,8 @@ Species_Assignment_Server <- function(id) {
       ## Tab: All Main Shares -------------------------------------------------------------
       weekly_species <- reactive({
         subs_all() %>% 
-          select(name, species, share_size, delivery_day, 
-                 pickup_site, pickup_site_label, email) %>% 
+          select(customer_name, species, share_size, delivery_day, 
+                 pickup_site, pickup_site_label, customer_email) %>% 
           arrange(delivery_day, species, share_size, pickup_site_label)
       })
       
@@ -313,7 +359,9 @@ Species_Assignment_Server <- function(id) {
                              species_select1$species(),
                              species_select2$species(),
                              species_select3$species(),
-                             species_select4$species()))
+                             species_select4$species(),
+                             species_select5$species(),
+                             species_select6$species()))
         
         species <- species[!is.na(species)] %>% singularize
         
@@ -364,19 +412,19 @@ Species_Assignment_Server <- function(id) {
             TRUE ~ species)
           ) %>%
           mutate(caught_by = case_when(
-            species == modify1$species() ~ paste("Caught by:", modify1$fisherman()),
-            species == modify2$species() ~ paste("Caught by:", modify2$fisherman()),
-            species == modify3$species() ~ paste("Caught by:", modify3$fisherman()),
-            species == modify4$species() ~ paste("Caught by:", modify4$fisherman()),
-            species == modify5$species() ~ paste("Caught by:", modify5$fisherman()),
-            species == modify6$species() ~ paste("Caught by:", modify6$fisherman()),
-            species == modify7$species() ~ paste("Caught by:", modify7$fisherman()),
-            species == modify8$species() ~ paste("Caught by:", modify8$fisherman()),
-            species == modify9$species() ~ paste("Caught by:", modify9$fisherman()),
-            species == modify10$species() ~ paste("Caught by:", modify10$fisherman()),
-            species == modify11$species() ~ paste("Caught by:", modify11$fisherman()),
-            species == modify12$species() ~ paste("Caught by:", modify12$fisherman()),
-            TRUE ~ "Caught by:")
+            species == modify1$species() ~ modify1$fisherman(),
+            species == modify2$species() ~ modify2$fisherman(),
+            species == modify3$species() ~ modify3$fisherman(),
+            species == modify4$species() ~ modify4$fisherman(),
+            species == modify5$species() ~ modify5$fisherman(),
+            species == modify6$species() ~ modify6$fisherman(),
+            species == modify7$species() ~ modify7$fisherman(),
+            species == modify8$species() ~ modify8$fisherman(),
+            species == modify9$species() ~ modify9$fisherman(),
+            species == modify10$species() ~ modify10$fisherman(),
+            species == modify11$species() ~ modify11$fisherman(),
+            species == modify12$species() ~ modify12$fisherman(),
+            TRUE ~ "")
           ) %>%
           mutate(gear_type = case_when(
             species == modify1$species() ~ paste("Gear type:", modify1$gear()),
@@ -422,6 +470,21 @@ Species_Assignment_Server <- function(id) {
             species == modify11$species() ~ paste("Port of landing:", modify11$port()),
             species == modify12$species() ~ paste("Port of landing:", modify12$port()),
             TRUE ~ "Port of landing:")
+          ) %>%
+          mutate(instructions = case_when(
+            species == modify1$species() ~ paste("Instructions:", modify1$instruction()),
+            species == modify2$species() ~ paste("Instructions:", modify2$instruction()),
+            species == modify3$species() ~ paste("Instructions:", modify3$instruction()),
+            species == modify4$species() ~ paste("Instructions:", modify4$instruction()),
+            species == modify5$species() ~ paste("Instructions:", modify5$instruction()),
+            species == modify6$species() ~ paste("Instructions:", modify6$instruction()),
+            species == modify7$species() ~ paste("Instructions:", modify7$instruction()),
+            species == modify8$species() ~ paste("Instructions:", modify8$instruction()),
+            species == modify9$species() ~ paste("Instructions:", modify9$instruction()),
+            species == modify10$species() ~ paste("Instructions:", modify10$instruction()),
+            species == modify11$species() ~ paste("Instructions:", modify11$instruction()),
+            species == modify12$species() ~ paste("Instructions:", modify12$instruction()),
+            TRUE ~ "Instructions:")
           ) %>%
           mutate(next_delivery = get_delivery_date(delivery_day)) %>%
           mutate(next_delivery = as.Date(next_delivery, origin = lubridate::origin)) %>% 
@@ -474,16 +537,16 @@ Species_Assignment_Server <- function(id) {
       
       labels_print <- reactive({
         weekly_species_final() %>% 
-          mutate(home_delivery_name = ifelse(str_detect(pickup_site_label, "Home Delivery"), name, " ")) %>% 
-          mutate(name = ifelse(str_detect(pickup_site_labels, "Home Delivery"), 
-                               "Home Delivery", name)) %>%
+          mutate(home_delivery_name = ifelse(str_detect(pickup_site_label, "Home Delivery"), customer_name, " ")) %>% 
+          mutate(customer_name = ifelse(str_detect(pickup_site_labels, "Home Delivery"), 
+                               "Home Delivery", customer_name)) %>%
           mutate(spacer_1 = "~", spacer_2 = "~", spacer_3 = "~~~~~~~~~~") %>%
           mutate(instructions = "") %>%
-          select(name, spacer_1, share_size, species, spacer_1, caught_by, gear_type, 
+          select(customer_name, spacer_1, share_size, species, spacer_1, caught_by, gear_type, 
                  landing_port, spacer_2, expiration_day, instructions, spacer_3, 
                  pickup_site_label, next_delivery, home_delivery_name, delivery_day) %>% 
           arrange(next_delivery, species, share_size, pickup_site_label, 
-                  name, home_delivery_name) %>% 
+                  customer_name, home_delivery_name) %>% 
           mutate(delivery_day = toupper(substr(delivery_day, 1, 3)))%>%
           split(.$delivery_day) %>% 
           lapply(function(df) {df %>% select(-delivery_day)})
@@ -511,7 +574,7 @@ Species_Assignment_Server <- function(id) {
         
         primary_subscription <- weekly_species_final() %>%
           separate(name, c("first_name", "last_name")) %>% 
-          select(last_name, first_name, email, pickup_site, share_size, 
+          select(last_name, first_name, customer_email, pickup_site, share_size, 
                  delivery_day, species, next_delivery) %>%
           mutate(type = "subscriber") %>% 
           mutate(species = ifelse(str_detect(species, "Lobster"), "Live Lobster", species)) %>% 
@@ -531,21 +594,6 @@ Species_Assignment_Server <- function(id) {
       )
       
       ### Button: Download New Member Labels ----------------------------------------------
-      
-      cooler_bag_label <- shopify_orders %>% 
-        filter(str_detect(order_tags, "Subscription First Order")) %>%
-        select(email) %>% 
-        unique() %>% 
-        left_join(weekly_species11) %>%
-        left_join(member_info %>% select(name, email)) %>% 
-          mutate(welcome = "~ Welcome to Get Hooked ~") %>% 
-          mutate(spacer_1= "~~~~~~~~",
-                 spacer_2= "~~~~~~~~") %>% 
-          select(welcome, spacer_1, name, spacer_2, pickup_site_label) %>% 
-          filter(!str_detect(pickup_site_label, "Home Delivery")) %>%
-          filter(!is.na(pickup_site_label)) %>% 
-          arrange(pickup_site_label)
-      
       
       output$downloadCoolerLabels <- downloadHandler(
         filename = "New_Member_Bag_Labels.csv",

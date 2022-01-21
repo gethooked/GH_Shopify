@@ -34,8 +34,8 @@ Checklists_Server <- function(id) {
         label_list <- lapply(delivery_day_levels, generate_checklists) %>%
           `names<-`(delivery_day_levels_abb)
         
-        wrong_list <- lapply(label_list, function(x) {x$wrong_list}) %>%
-          do.call(rbind, .) %>% `row.names<-`(NULL)
+        # wrong_list <- lapply(label_list, function(x) {x$wrong_list}) %>%
+        #   do.call(rbind, .) %>% `row.names<-`(NULL)
         
         removeModal()
         session$reload()
@@ -59,13 +59,13 @@ Checklists_Server <- function(id) {
           USE.NAMES = FALSE) %>%
           
           ## appending "Wrong Entries" tab after kichen/site list tabs
-          append(list(
-            tabPanel(
-              "Wrong Entries", 
-              dataTableOutput(session$ns("wrong_list"))
-              )
-            )) %>%
-          do.call(tabsetPanel, .)
+          # append(list(
+          #   tabPanel(
+          #     "Wrong Entries", 
+          #     dataTableOutput(session$ns("wrong_list"))
+          #     )
+          #   )) %>%
+           do.call(tabsetPanel, .)
       })
 
       ## mapply to execute module function ----------------------------------------------------
@@ -83,10 +83,10 @@ Checklists_Server <- function(id) {
         USE.NAMES = FALSE)
       
       # * Tab: Wrong Entries ------------------------------------------------------------
-      output$wrong_list <- renderDataTable({
-        datatable(wrong_list, width = "100%",
-                  options = datatable_options)
-        })
+      # output$wrong_list <- renderDataTable({
+      #   datatable(wrong_list, width = "100%",
+      #             options = datatable_options)
+      #   })
       }
     )
 }

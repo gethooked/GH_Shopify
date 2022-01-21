@@ -137,40 +137,69 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
 
   subscription_check <- Active_Deliveries[[paste0("Labels_", abb)]] %>%
     ## Fix column names if there are accidental edits
-    `colnames<-`(c("name", "spacer_1", "share_size", "species","caught_by",   
-                   "gear_type", "landing_port", "spacer_2", "expiration_day", "instructions",  
-                   "spacer_3", "pickup_site_label", "next_delivery", "home_delivery_name"))%>%
+    `colnames<-`(c("customer_name", 
+                   "spacer_1", 
+                   "share_size", 
+                   "species",
+                   "caught_by",   
+                   "gear_type", 
+                   "landing_port", 
+                   "spacer_2", 
+                   "expiration_day", 
+                   "instructions",  
+                   "spacer_3", 
+                   "pickup_site_label", 
+                   "next_delivery", 
+                   "home_delivery_name"))%>%
     mutate(type = "subscription") %>% 
-    mutate(name = as.character(name)) %>% 
+    mutate(customer_name = as.character(customer_name)) %>% 
 #    mutate(home_delivery_name = as.character(home_delivery_name)) %>% 
 #    mutate(name = ifelse(name == "Home Delivery", home_delivery_name, name)) %>% 
-    select(pickup_site_label, name, species, share_size, type)
+    select(pickup_site_label, customer_name, species, share_size, type)
   
 #  flashsale_check <- Active_Deliveries[[paste0("Flashsales_", "THU")]] %>%
   flashsale_check <- Active_Deliveries[[paste0("Flashsales_", abb)]] %>%
+    ## Fix column names if there are accidental edits
+    `colnames<-`(c("Timestamp",
+                   "customer_email",
+                   "customer_name",
+                   "spacer_1",
+                   "share_type",
+                   "share_size",
+                   "spacer_2",
+                   "pickup_site_label",
+                   "date",
+                   "instructions_1",
+                   "instructions_2",
+                   "schedule",
+                   "source",
+                   "name_form",
+                   "order",
+                   "price",
+                   "delivery_day")) %>%
     mutate(Timestamp = as.character(Timestamp)) %>%
     ## New member labels are sometimes pasted into Flashsalse spreadsheets for printing purposes.
     ## The first column will be ~ Welcome to Get Hooked ~. Filter out those labels according to this
     filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
     filter(!str_detect(pickup_site_label, "- [0-9]")) %>%
     mutate(type = "Add-on") %>%
-    select(pickup_site_label, name, species = share_type, share_size, type)
+    select(pickup_site_label, customer_name, species = share_type, share_size, type)
   
   deliveries_complete <- rbind(subscription_check, flashsale_check)%>%
     mutate(pickup_site_label = trimws(pickup_site_label))
   
-  wrong_list <- rbind(subscription_check %>% mutate(source = paste("Labels_", abb)), 
-                      flashsale_check %>% mutate(source = paste("Flashsales_", abb))) %>% 
-    mutate(pickup_site_label = trimws(pickup_site_label)) %>% 
-    left_join(pickup_sites_key, by = "pickup_site_label") %>%
-    filter(production_day != deliv_day) %>%
-    select(source, everything())
+#   wrong_list <- rbind(subscription_check %>% mutate(source = paste("Labels_", abb)), 
+#                       flashsale_check %>% mutate(source = paste("Flashsales_", abb))) %>% 
+#     mutate(pickup_site_label = trimws(pickup_site_label)) %>% 
+#     left_join(pickup_sites_key, by = "pickup_site_label") %>%
+# #    filter(production_day != deliv_day) %>%
+#     select(source, everything())
   
   if(nrow(deliveries_complete) > 0) {
     
     Kitchen_list <- deliveries_complete %>%
       filter(pickup_site_label != "") %>%
-      mutate(name = str_to_title(name),
+      mutate(customer_name = str_to_title(customer_name),
              type = str_to_title(type))%>%
       `colnames<-`(c("Pickup Site", "Name", "Item", "Size", "Type")) %>%
       arrange(`Pickup Site`, Name) %>%
@@ -195,8 +224,9 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
   }
   
   return(list(Kitchen_list = Kitchen_list, 
-              Site_list = Site_list,
-              wrong_list = wrong_list))
+              Site_list = Site_list
+              #wrong_list = wrong_list
+              ))
 }
 
 
@@ -204,17 +234,29 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
 rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
   if(type == "Labels") {
     colNames <- c(
-      "name", "spacer_1", "share_size", "species", "caught_by",
+      "customer_name", "spacer_1", "share_size", "species", "caught_by",
       "gear_type", "landing_port", "spacer_2", "expiration_day", "instructions",
       "spacer_3", "pickup_site_label", "next_delivery", "home_delivery_name"
     )
   }
   else {
-    colNames <- c(
-      "Timestamp", "email", "name", "spacer_1", "share_type",
-      "share_size", "spacer_2", "pickup_site_label", "date", "instructions",
-      "source", "order", "price","delivery_day"
-      )
+    colNames <- (c("Timestamp",
+                   "customer_email",
+                   "customer_name",
+                   "spacer_1",
+                   "share_type",
+                   "share_size",
+                   "spacer_2",
+                   "pickup_site_label",
+                   "date",
+                   "instructions_1",
+                   "instructions_2",
+                   "schedule",
+                   "source",
+                   "name_form",
+                   "order",
+                   "price",
+                   "delivery_day"))
   }
 
   lapply(delivery_day_levels, function(deliv_day) {

@@ -24,14 +24,6 @@ species_selection_UI <- function(id, index) {
     br(),
     br(),
     
-    # ## schedule selection
-    # selectInput(
-    #   ns('schedule'),
-    #   label = "Choose a schedule:",
-    #   choices = c("Biweekly", "Weekly", "All"),
-    #   selected = "All"
-    #   ),
-    
     ## share size selection (see sever)
     uiOutput(ns('share_size_selectInput')),
     
@@ -182,11 +174,6 @@ species_selection_Server <- function(id, is_species_assignment = FALSE,
       ## "Clear All Species Selection" button
       observeEvent(input$clear | clear_all(), {
         
-        # updateSelectInput(
-        #   session = getDefaultReactiveDomain(),
-        #   inputId = "schedule",
-        #   choices = c("Biweekly", "Weekly", "All"),
-        #   selected = "All")
           
         updateSelectInput(
           session = getDefaultReactiveDomain(),
@@ -253,6 +240,9 @@ modifiy_UI <- function(id, index) {
     textInput(ns('expiration'),
               paste0("Expiration Date ", index, ":"),
               "Cook or freeze by [day, date]"),
+    
+    textInput(ns('instruction'),
+              paste0("Instructions ", index, ":")),
     hr()
   )
   
@@ -270,6 +260,7 @@ modify_Server <- function(id, species_list) {
       gear <- reactive({ input$gear })
       port <- reactive({ input$port })
       expiration <- reactive({ input$expiration })
+      instruction <- reactive({ input$instruction })
       
       ## select from flash_list if the list of species is empty
       observe({
@@ -290,7 +281,8 @@ modify_Server <- function(id, species_list) {
                   fisherman = fisherman,
                   gear = gear,
                   port = port,
-                  expiration = expiration))
+                  expiration = expiration,
+                  instruction = instruction))
     }
   )
 }
