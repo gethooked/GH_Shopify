@@ -15,6 +15,7 @@ wday_date <- function(w) {
 
 # Cutoff date for new members in Species Assignment (Monday before last)
 cutoff <- wday_date(3) - 17
+cutoff_date <- wday_date(0)
 
 # delivery day
 delivery_day_levels <- c("Tuesday", "Wednesday", "Thursday", "LA")

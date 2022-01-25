@@ -61,7 +61,7 @@ Main_Shares_UI <- function(id) {
               tabPanel("Share Pounds by Site", dataTableOutput(ns("fillet_weight_by_site"))),
               tabPanel("No Assignment", dataTableOutput(ns("no_assignment"))),
               tabPanel("All Main Shares", dataTableOutput(ns("weekly_species"))),
-              tabPanel("Unmatched Pickup Sites", dataTableOutput(ns("unmatched_pickup_sites")))
+              tabPanel("Missed Cutoff", dataTableOutput(ns("subscription_nextweek")))
               
             )
           )
@@ -238,9 +238,9 @@ Main_Shares_Server <- function(id) {
       })
  
       
-      ## Check Unmatched Pickup Sites
-      output$unmatched_pickup_sites <- renderDataTable({
-        datatable(unmatched_pickup_sites)
+      ## Check new member cutoff 
+      output$subscription_nextweek <- renderDataTable({
+        datatable_export(subscription_nextweek, title = "Missed Cutoff - New Member Subscription")
       })
       
       # Share Size Floating Window =========================================================

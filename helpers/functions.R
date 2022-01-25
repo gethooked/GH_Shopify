@@ -232,6 +232,7 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
 
 ## Combine sheets in Active Deliveries by rows
 rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
+  
   if(type == "Labels") {
     colNames <- c(
       "customer_name", "spacer_1", "share_size", "species", "caught_by",

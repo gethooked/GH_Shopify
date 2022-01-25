@@ -1,4 +1,20 @@
-# clean_phone_number: Cleaning up and formatting phone numbers -----------------------------------------
+# clean_date: Cleaning up and formatting phone numbers -----------------------------------------
+clean_date <- function(df) {
+  
+  df %>% 
+    separate(order_date, c("order_date","order_day"), sep = ',') %>% 
+    mutate(order_date = as.Date(paste0(order_date, " ", format(Sys.Date(), "%Y")), format = "%B %d %Y")) %>%
+    select(-order_day)
+    
+}
+
+new_member_cutoff <- function(df) {
+  
+  df %>% 
+    mutate(delivery_week = ifelse(str_detect(order_tag, "1st Order") & order_date > cutoff_date, "Next Week", ""))
+}
+
+
 # App(s): Main Shares, Species Assignment, Home Delivery
 clean_colname <- function(df, type) {
   
@@ -9,7 +25,6 @@ clean_colname <- function(df, type) {
       "order_id", 
       "order_date", 
       "order_time", 
-      "order_day", 
       "customer_name",
       "customer_email",
       "product_name", 
@@ -20,12 +35,10 @@ clean_colname <- function(df, type) {
       "sku", 
       "weight_lb", 
       "product_tag",
-      "variant_price",
       "order_tag"
-      
       )
     
-    position <- c(1:16)
+    position <- c(1:14)
 
   }
   else {
@@ -34,27 +47,25 @@ clean_colname <- function(df, type) {
         "order_id", 
         "order_date", 
         "order_time", 
-        "order_day",
         "customer_email",
         "subscription_size",
         "product_tag",
-        "customer_tag",
         "order_tag",
         "customer_name",
-        "address",
+        "address1",
+        "address2",
         "city",
         "state",
         "zip",
         "phone",
         "notes",
-        "sub_1",
-        "sub_2",
-        "sub_3",
-        "sub_4",
-        "sub_5"
+        "customer_tag",
+        "location",
+        "pickup_site",
+        "opt_out"
         )
       
-      position <- c(1:21)
+      position <- c(1:19)
   }
   
   df %>%
@@ -67,32 +78,31 @@ clean_colname <- function(df, type) {
 
 # clean_subscription: data cleaning for shopify_orders -------------------------------------
 # App(s): Main Shares, Species Assignment
-
-
-
   
 clean_subscription <- function(df) {
   
   df %>%
+    mutate(pickup_site_label = paste0(pickup_site, " - ",location)) %>% 
 
     #clean and separate subscription properties, location, pickup_site, opt_outs
-    gather(key = "position", value = "sub_value", sub_1:sub_5) %>% 
-    separate(sub_value, c("key", "value"), sep = ":") %>% 
-    mutate(key_name = ifelse(str_detect(key, "location"), "location",
-                             ifelse(str_detect(key, "Site"), "pickup_site",
-                                    ifelse(str_detect(key, "seafood exclusions"), "opt_out", NA)))) %>% 
-    select(-position, -key) %>% 
-    filter(!is.na(key_name)) %>%
-    separate(value, "value_trim", sep = "\\(", extra = "drop") %>% 
-    spread(key_name, value_trim) %>%
-    
-    #pickup site label format
-    mutate(pickup_site_label = ifelse(str_detect(pickup_site, regex("Home Delivery", ignore_case = T)), paste0("Home Delivery - ", location), paste0(pickup_site, " - ",location))) %>% 
-    mutate(pickup_site = ifelse(str_detect(pickup_site_label, "Home Delivery | Topa"), pickup_site_label, pickup_site)) %>%
+    # gather(key = "position", value = "sub_value", sub_1:sub_5) %>% 
+    # separate(sub_value, c("key", "value"), sep = ":") %>% 
+    # mutate(key_name = ifelse(str_detect(key, "location"), "location",
+    #                          ifelse(str_detect(key, "Site"), "pickup_site",
+    #                                 ifelse(str_detect(key, "seafood exclusions"), "opt_out", NA)))) %>% 
+    # select(-position, -key) %>% 
+    # filter(!is.na(key_name)) %>%
+    # separate(value, "value_trim", sep = "\\(", extra = "drop") %>% 
+    # spread(key_name, value_trim) %>%
+    # 
+    # #pickup site label format -> "pickup site - location" or "Home Delivery - location"
+    # mutate(pickup_site_label = ifelse(str_detect(pickup_site, regex("Home Delivery", ignore_case = T)), paste0("Home Delivery - ", location), paste0(pickup_site, " - ",location))) %>%
+  
+    mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery|Topa"), pickup_site_label, pickup_site)) %>%
     
     #getting share_size
-    separate(subscription_size, "share_size", sep = " Share") %>%
-    mutate(share_size = ifelse(share_size == "XL", "ExtraLarge", share_size)) %>% 
+    # separate(subscription_size, "share_size", sep = " Share") %>%
+    mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
     
     #get delivery day
     mutate(delivery_day = str_extract(customer_tag, "Tuesday|Wednesday|Thursday")) %>% 

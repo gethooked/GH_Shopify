@@ -34,24 +34,34 @@ source(file.path("www/data", "constants.R"))
 Product_KEYS_id      <- c("633942957", "1819169532")
 Active_Deliveries_id <- c("684811568", "346693116", "1627046312", "544947288",
                           "1544807263",  "1232985667",  "1443610327", "1160831953")
+Shopify_Orders_id    <- c("1184397264", "16853773")
 
 ## Sheet names
 Product_KEYS_names      <- c("Share_Size_Variant", "Species_Options")
 Active_Deliveries_names <- c(paste0("Labels_",     delivery_day_levels_abb), 
                              paste0("Flashsales_", delivery_day_levels_abb))
 
+Shopify_Orders_names      <- c("Incoming Orders", "Subscription Orders")
+
 ## Read data
 Product_KEYS      <- read_gs_para(ss = ss["product_keys"], Product_KEYS_id, Product_KEYS_names) 
 Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliveries_id, Active_Deliveries_names)
 
+# # Weekly Orders
+Shopify_Orders    <- read_gs_para(ss = ss["shopify"], Shopify_Orders_id, Shopify_Orders_names) 
+
 ## Only one worksheet is used --------------------------------------------------------------------
 
 ##Weekly order sync
-order_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "1184397264"), col_names = FALSE)
+order_sync   <- Shopify_Orders$`Incoming Orders`
+
+#order_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "1184397264"), col_names = FALSE) 
 #https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=1184397264
 
 ##Weekly subscription sync
-subscription_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "16853773"), col_names = FALSE)
+subscription_sync   <- Shopify_Orders$`Subscription Orders`
+
+#subscription_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "16853773"), col_names = FALSE)
 #https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=16853773
 
 
@@ -63,21 +73,33 @@ shopify_subscription <- subscription_sync %>%
   
   #Assigning column names and data structure to avoid errors
   clean_colname(type = "Subscription") %>% 
-  mutate_at(vars(zip, phone), ~as.numeric(.)) 
+  filter(str_detect(product_tag, "main share")) %>%
+  mutate_at(vars(zip, phone), ~as.numeric(.)) %>% 
+  mutate(address = paste0(address1, address2)) %>% 
+  clean_subscription() %>% 
+  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>% 
+  clean_date() %>% 
+  new_member_cutoff()
 
 ## Active subscriptions for the week - used in mainshare & species assignment  
 
 subscription <- shopify_subscription %>% 
-  clean_subscription() %>% 
-  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3)))
+  filter(delivery_week != "Next Week") %>% 
+  select(-delivery_week)
+
+subscription_nextweek <- shopify_subscription %>% 
+  filter(delivery_week == "Next Week") %>% 
+  select("Order Name" = order_id) %>% 
+  left_join(subscription_sync)
 
 ## * Incoming orders ---------------------------------------------------------------------------
 
 shopify_orders  <- order_sync %>%
   
   #Assigning column names and data structure to avoid errors
-  clean_colname(type = "Orders") %>% 
-  mutate_at(vars(quantity, weight_lb, variant_price), ~as.numeric(.)) %>%
+  clean_colname(type = "Orders") %>%
+  filter(str_detect(order_id, "#")) %>% 
+  mutate_at(vars(quantity, weight_lb), ~as.numeric(.)) %>%
 
   #route notation for checklists if order is "dry goods"
   mutate(route_notation = ifelse(str_detect(product_tag, "Packing Method:Bag"), "yes", ""),
@@ -186,7 +208,7 @@ fillet_weight_by_site <- weekly_species11 %>%
   ## get main share orders
   filter(str_detect(tolower(product_tag), "main share upgrade")) %>%
   ## remove "pick for me" options
-  filter(variant_price != 0 | !is.na(variant_price)) %>% 
+  filter(str_detect(tolower(sku), "COTD")) %>% 
 
    ## e.g. Fresh Halibut Fillet -> Halibut
   mutate(share_upgrade = str_remove_all(variant_name, "Fresh | Fillet")) %>%
