@@ -57,7 +57,8 @@ Special_Orders_Server <- function(id) {
         
         ## appending tabs other than Tuesday/Wednesday/Thursday/LA Orders
         append(list(tabPanel("Fresh Product Needed", dataTableOutput(session$ns("fresh_product_all"))),
-                    tabPanel("Fresh Product by Day", dataTableOutput(session$ns("fresh_product_by_day"))))) %>%
+                    tabPanel("Fresh Product by Day", dataTableOutput(session$ns("fresh_product_by_day"))),
+                    tabPanel("Missed Cutoff/Order Errors", dataTableOutput(session$ns("error_shopify_orders"))))) %>%
         do.call(tabsetPanel, .)
       })
         
@@ -72,6 +73,10 @@ Special_Orders_Server <- function(id) {
         datatable_export(fresh_product_by_day, title = paste(title_SO, "- Fresh Product Needed"))
       })
       
+      # Missed Cutoff and Order Errors -----------------------------------------------------------
+      output$error_shopify_orders <- renderDataTable({
+        datatable_export(error_shopify_orders, title = paste(title_SO, "- Missed Cutoff and Order Errors"))
+      })
 
       # Buttons: download Labels -----------------------------------------------------------------
       output$btn_Labels <- renderUI({

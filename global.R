@@ -77,7 +77,9 @@ shopify_subscription <- subscription_sync %>%
   mutate_at(vars(zip, phone), ~as.numeric(.)) %>% 
   mutate(address = paste0(address1, address2)) %>% 
   clean_subscription() %>% 
-  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>% 
+  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>%
+  
+  #identifying new members that signed up passed monday cutoff 
   clean_date() %>% 
   new_member_cutoff()
 
@@ -87,6 +89,7 @@ subscription <- shopify_subscription %>%
   filter(delivery_week != "Next Week") %>% 
   select(-delivery_week)
 
+## New subscriptions for next week - to be exported and fulfilled the following week 
 subscription_nextweek <- shopify_subscription %>% 
   filter(delivery_week == "Next Week") %>% 
   select("Order Name" = order_id) %>% 
@@ -94,14 +97,13 @@ subscription_nextweek <- shopify_subscription %>%
 
 ## * Incoming orders ---------------------------------------------------------------------------
 
-shopify_orders  <- order_sync %>%
+all_shopify_orders  <- order_sync %>%
   
   #Assigning column names and data structure to avoid errors
   clean_colname(type = "Orders") %>%
-  clean_date() %>% 
+  clean_date() %>%
   mutate(order_time = str_remove_all(order_time, " ")) %>% 
   filter(str_detect(order_id, "#")) %>% 
-  mutate_at(vars(quantity, weight_lb), ~as.numeric(.)) %>%
 
   #route notation for checklists if order is "dry goods"
   mutate(route_notation = ifelse(str_detect(product_tag, "Packing Method:Bag"), "yes", ""),
@@ -116,9 +118,20 @@ shopify_orders  <- order_sync %>%
   left_join(shiny_category_df) %>%
   
   #add customer detail to orders
-  left_join(subscription %>% select(customer_email, pickup_site_label, delivery_day, delivery_day_abb))
+  left_join(shopify_subscription  %>% select(customer_email, pickup_site_label, delivery_day, delivery_day_abb, delivery_week)) %>% 
+  lapply(gsub, pattern = "&amp;", replacement = "&", fixed = TRUE) %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>% 
+  mutate_at(vars(quantity, weight_lb), ~as.numeric(.))
 
 
+shopify_orders <- all_shopify_orders %>% 
+  filter(delivery_week == "") %>% 
+  select(-delivery_week)
+
+error_shopify_orders <- all_shopify_orders %>% 
+  filter(delivery_week == "Next Week" | is.na(delivery_week)) %>%
+  mutate(error_type = ifelse(is.na(delivery_week), "no subscription order", delivery_week)) %>% 
+  select(-delivery_week)
 
 # 4.1 Main Shares & Species Assignment ==========================================================
 
@@ -219,8 +232,15 @@ fillet_weight_by_site <- weekly_species11 %>%
 
   ## get main share orders
   filter(str_detect(tolower(product_tag), "main share upgrade")) %>%
+  
+  #select most recent order if customers ordered multiple
+  arrange(desc(order_id)) %>% 
+  group_by(customer_email) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup() %>% 
+
   ## remove "pick for me" options
-  filter(str_detect(tolower(sku), "COTD")) %>% 
+  filter(!str_detect(sku, "COTD")) %>% 
 
    ## e.g. Fresh Halibut Fillet -> Halibut
   mutate(share_upgrade = str_remove_all(variant_name, "Fresh | Fillet")) %>%
@@ -356,8 +376,6 @@ orders_ED_SO <- shopify_orders %>%
   # filter out main share orders
   filter(deadline_type %in% c("Early Deadline", "Special Order")) %>% 
   unite("timestamp", order_date, order_time, sep = " ") %>% 
-#  select(email= customer_email, name = customer_name, product_name, variant_name, timestamp, quantity,
-#         weight_lb, product_tag, deadline_type, inventory_type, shiny_category, delivery_day, pickup_site_label) %>%
 
   #turning multiples to individal lines except oysters
   mutate(variant_name = ifelse(str_detect(tolower(product_name), "oyster"), quantity, variant_name),
@@ -368,16 +386,6 @@ orders_ED_SO <- shopify_orders %>%
   mutate(share_type = replace_na(product_name, "") %>% trimws) %>% 
   mutate(share_size = ifelse(variant_name == "", 1, variant_name) %>% trimws) %>% 
   mutate(source = "Store") 
-  
-  #create shiny_category with ED/SO, VO/FS/IF/ID 1487120EDFS
-  # mutate(shiny_category = str_sub(sku,8,11)) 
-# %>% 
-# 
-#   #join with member info
-#   left_join(member_info, by = "email")
-
-#ED_SO_category <- sort(unique(orders_ED_SO$shiny_category))
-#ED_category <- ED_SO_category[str_detect(ED_SO_category, "ED")] %>% str_remove("ED")
 
 
 #data set used for ED/SO labels
