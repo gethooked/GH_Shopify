@@ -488,7 +488,8 @@ Species_Assignment_Server <- function(id) {
           ) %>%
           mutate(next_delivery = get_delivery_date(delivery_day)) %>%
           mutate(next_delivery = as.Date(next_delivery, origin = lubridate::origin)) %>% 
-          mutate(next_delivery = format(next_delivery, "%m/%d/%y")) %>% 
+          mutate(next_delivery = format(next_delivery, "%m/%d/%y")) %>%
+          mutate(species_name = species) %>% 
           mutate(species = species_change) %>% 
           select(-species_change)
       })
@@ -538,16 +539,15 @@ Species_Assignment_Server <- function(id) {
       labels_print <- reactive({
         weekly_species_final() %>% 
           mutate(home_delivery_name = ifelse(str_detect(pickup_site_label, "Home Delivery"), customer_name, " ")) %>% 
-          mutate(customer_name = ifelse(str_detect(pickup_site_labels, "Home Delivery"), 
+          mutate(customer_name = ifelse(str_detect(pickup_site_label, "Home Delivery"), 
                                "Home Delivery", customer_name)) %>%
           mutate(spacer_1 = "~", spacer_2 = "~", spacer_3 = "~~~~~~~~~~") %>%
-          left_join(share_size_list) %>% 
-          mutate(share_size_label = paste0(as.character(share_size), " ", "(", as.character(label_weight), ")")) %>%
-          select(customer_name, spacer_1, share_size_label, species, spacer_1, caught_by, gear_type, 
-                 landing_port, spacer_2, expiration_day, instructions, spacer_3, 
-                 pickup_site_label, next_delivery, home_delivery_name, delivery_day) %>% 
-          arrange(next_delivery, species, share_size, pickup_site_label, 
-                  customer_name, home_delivery_name) %>% 
+          left_join(share_size_list) %>%
+          select(customer_name, spacer_1, share_size_label, species, spacer_1, caught_by, gear_type,
+                 landing_port, spacer_2, expiration_day, instructions, spacer_3,
+                 pickup_site_label, next_delivery, home_delivery_name, delivery_day) %>%
+          arrange(next_delivery, species, share_size_label, pickup_site_label,
+                  customer_name, home_delivery_name) %>%
           mutate(delivery_day = toupper(substr(delivery_day, 1, 3)))%>%
           split(.$delivery_day) %>% 
           lapply(function(df) {df %>% select(-delivery_day)})

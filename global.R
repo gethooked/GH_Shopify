@@ -98,6 +98,8 @@ shopify_orders  <- order_sync %>%
   
   #Assigning column names and data structure to avoid errors
   clean_colname(type = "Orders") %>%
+  clean_date() %>% 
+  mutate(order_time = str_remove_all(order_time, " ")) %>% 
   filter(str_detect(order_id, "#")) %>% 
   mutate_at(vars(quantity, weight_lb), ~as.numeric(.)) %>%
 
@@ -134,7 +136,8 @@ fillet_options <- Product_KEYS$Species_Options %>%
   select(type = options, share_size, label_weight)
 
 share_size_list <- rbind(share_size_variant_list, fillet_options) %>% 
-  select(species_lable = type, share_size, label_weight)
+  select(species_name = type, share_size, label_weight) %>% 
+  mutate(share_size_label = paste0(as.character(share_size), " ", "(", as.character(label_weight), ")"))
 
 
 share_size_variant <- Product_KEYS$Share_Size_Variant %>%
@@ -177,16 +180,25 @@ opt_out_extra <- Product_KEYS$Share_Size_Variant %>%
 
 
 ### Choices for "Select Delivery Locations" in the sidebar
-sites <- unique(subscription$pickup_site) 
+
+sites_df <- subscription %>% 
+  distinct(pickup_site, .keep_all = TRUE)
+
+sites <- sites_df$pickup_site 
   
 
 ### Split sites into a list by delivery day
-sites_list <- split(sites, subscription$delivery_day_abb) 
+sites_list <- split(sites, sites_df $delivery_day_abb) 
 
 
 ## Core dataset for Main Shares app
 weekly_species11 <- subscription %>% 
-  mutate(species = "unassigned")
+  mutate(species = "unassigned") %>% 
+  arrange(desc(order_id)) %>% 
+  group_by(customer_email) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup()
+
   
 
 # * Tab: Share Pounds by Site ----------------------------------------------------------------
@@ -354,7 +366,7 @@ orders_ED_SO <- shopify_orders %>%
   
   #data cleaning
   mutate(share_type = replace_na(product_name, "") %>% trimws) %>% 
-  mutate(share_size = replace_na(variant_name, "1") %>% trimws) %>% 
+  mutate(share_size = ifelse(variant_name == "", 1, variant_name) %>% trimws) %>% 
   mutate(source = "Store") 
   
   #create shiny_category with ED/SO, VO/FS/IF/ID 1487120EDFS
