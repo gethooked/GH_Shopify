@@ -574,7 +574,7 @@ Species_Assignment_Server <- function(id) {
       op_file <- reactive({
         
         primary_subscription <- weekly_species_final() %>%
-          separate(name, c("first_name", "last_name")) %>% 
+          separate(customer_name, c("first_name", "last_name")) %>% 
           select(last_name, first_name, customer_email, pickup_site, share_size, 
                  delivery_day, species, next_delivery) %>%
           mutate(type = "subscriber") %>% 
