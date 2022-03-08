@@ -85,9 +85,9 @@ shopify_subscription <- subscription_sync %>%
 
 ## Active subscriptions for the week - used in mainshare & species assignment  
 
-subscription <- shopify_subscription %>% 
-  filter(delivery_week != "Next Week") %>% 
-  select(-delivery_week)
+subscription <- shopify_subscription  %>% 
+#   filter(delivery_week != "Next Week") %>% 
+   select(-delivery_week)
 
 ## New subscriptions for next week - to be exported and fulfilled the following week 
 subscription_nextweek <- shopify_subscription %>% 
@@ -470,7 +470,8 @@ dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
   mutate(share_type = ifelse(!is.na(order) & str_detect(order, "Fillet"), 
                              str_remove(order, " - .*"), share_type)) %>%
   mutate(instructions_1 = "",
-         instructions_2 = "") %>% 
+         instructions_2 = "") %>%
+  mutate(customer_name = as.character(customer_name)) %>% 
   left_join(route, by = "customer_name") %>%
   replace_na(list(driver_stop_route = "")) %>%
   mutate(PSL = pickup_site_label) %>% 

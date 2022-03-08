@@ -177,7 +177,8 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
                    "order",
                    "price",
                    "delivery_day")) %>%
-    mutate(Timestamp = as.character(Timestamp)) %>%
+    mutate(Timestamp = as.character(Timestamp),
+           customer_name = as.character(customer_name)) %>%
     ## New member labels are sometimes pasted into Flashsalse spreadsheets for printing purposes.
     ## The first column will be ~ Welcome to Get Hooked ~. Filter out those labels according to this
     filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%

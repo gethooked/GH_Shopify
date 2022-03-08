@@ -91,7 +91,7 @@ clean_subscription <- function(df) {
     mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
     
     #get delivery day
-    mutate(delivery_day = str_extract(customer_tag, "Tuesday|Wednesday|Thursday")) %>% 
+    mutate(delivery_day = str_extract(order_tag, "Tuesday|Wednesday|Thursday")) %>% 
     mutate(delivery_day = ifelse(location == "Los Angeles", "LA", delivery_day)) %>% 
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>% 
     
