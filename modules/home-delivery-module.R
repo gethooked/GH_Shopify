@@ -94,22 +94,20 @@ Home_Delivery_Server <- function(id) {
         data_input() %>%
           unite(address, Address1, City, State, Zip, sep = ", ") %>% 
           mutate(text = paste(StopOrder, Name, address, sep = ". "))%>% 
-          select(stop = StopOrder, name = Name, address, 
+          select(stop = StopOrder, customer_name = Name, address, 
                  note = Note, phone = Note2, text, driver, route_index) %>% 
           merge(deliveries_label %>% filter_delivery_day(delivery_day()),
-                by = "name")%>% 
+                by = "customer_name")%>% 
           mutate(driver_stop = as.numeric(trimws(stop)))%>%
           rename(date = delivery_date, size = share_size) %>%
           arrange(route_index, driver_stop) %>% 
           mutate(driver_stop_label = paste(driver, driver_stop, sep = " - "))%>%
-          mutate(name_label = name,
+          mutate(name_label = customer_name,
                  address_label = address,
                  driver_stop_route = driver_stop_label)%>%
-          mutate(size = paste(size, discount, sep = " ")) %>% 
           mutate(bagsDropped = "", bagsTaken = "") %>%
-          clean_phone_number() %>%
           select(bagsDropped, bagsTaken, dryGoods = all_dry, 
-                 driver_stop_route, name, phone, address, 
+                 driver_stop_route, customer_name, phone, address, 
                  note, driver_stop_label, spacer_1, size, species, spacer_2, 
                  name_label, spacer_label, address_label, date, text)
       })
@@ -123,6 +121,7 @@ Home_Delivery_Server <- function(id) {
         downloadButton(session$ns("downloadRoutesavvyFile"), 
                        paste("Download", delivery_day_abb(), "Routesavvy File"))
       })
+      
       
       ## Button: Download Home Delivery Route
       output$btn_downloadRoute <- renderUI({
