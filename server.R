@@ -1,15 +1,16 @@
 server <- function(input, output, session) {
-  observeEvent(input$sign_out, {
-    req(session$userData$user()$email)
-    sign_out_from_shiny(session)
-    session$reload()
-  })
+  #Polished
+  # observeEvent(input$sign_out, {
+  #   req(session$userData$user()$email)
+  #   sign_out_from_shiny(session)
+  #   session$reload()
+  # })
   
   observeEvent(input$restart, {
     req(session$userData$user()$email)
     showModal(modalDialog("Restarting...", footer=NULL))
     sign_out_from_shiny(session)
-    rsconnect::restartApp("apps-v2", account = "gethookedseafood")
+    rsconnect::restartApp("shopify_app", account = "gethookedseafood")
     removeModal()
   })
   
@@ -19,8 +20,8 @@ server <- function(input, output, session) {
    Special_Orders_Server("Panel_Special_Orders")
    Checklists_Server("Panel_Checklists")
    Home_Delivery_Server("Panel_Home_Delivery")
-  # Bag_Counts_Server("Panel_Bag_Counts")
   
 }
 
-secure_server(server)
+#Polished
+# secure_server(server)

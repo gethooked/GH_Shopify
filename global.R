@@ -12,15 +12,24 @@ library(readxl)
 # 1. Configuration ==========================================================================
 
 ## Configure global sessions for `polished`
-polished::global_sessions_config(
-  app_name = "shopify",
-  api_key = "4Ady0VxJ3fmqDvTaBdszpuaSUjGAOr9GDO")
+# global_sessions_config(
+#   app_name = "shopify_app",
+#   api_key = "4Ady0VxJ3fmqDvTaBdszpuaSUjGAOr9GDO")
+# 
+# global_sessions_config(
+#   app_name = "<shopify_app>",
+#   api_key = "<4Ady0VxJ3fmqDvTaBdszpuaSUjGAOr9GDO>"
+# )
 
 ## Configure ShinyApps account
-rsconnect::setAccountInfo(
-  name = 'beehoover',
-  token = '4EFBDD20636816D472A997D3D76A6372',
-  secret = 'JU+3ZGMGBL1IjlCfEsvVy0nYzDFglD4UDNPK8gWw')
+# rsconnect::setAccountInfo(
+#   name = 'beehoover',
+#   token = '4EFBDD20636816D472A997D3D76A6372',
+#   secret = 'JU+3ZGMGBL1IjlCfEsvVy0nYzDFglD4UDNPK8gWw')
+
+rsconnect::setAccountInfo(name='gethookedseafood',
+                          token='2404697D4F5E382C8A08C04F99BAD497',
+                          secret='UyQyJ38YJgS+EkreQkiQtYhUjXmVVLeZ+sVlSb9E')
 
 # 2. Load Functions and Constant Values =====================================================
 source(file.path("helpers", "functions.R"))
@@ -92,8 +101,7 @@ subscription <- shopify_subscription  %>%
 ## New subscriptions for next week - to be exported and fulfilled the following week 
 subscription_nextweek <- shopify_subscription %>% 
   filter(delivery_week == "Next Week") %>% 
-  select("Order Name" = order_id) %>% 
-  left_join(subscription_sync)
+  select("Order Name" = order_id)
 
 ## * Incoming orders ---------------------------------------------------------------------------
 

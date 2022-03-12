@@ -472,19 +472,19 @@ Species_Assignment_Server <- function(id) {
             TRUE ~ "Port of landing:")
           ) %>%
           mutate(instructions = case_when(
-            species == modify1$species() ~ paste("Instructions:", modify1$instruction()),
-            species == modify2$species() ~ paste("Instructions:", modify2$instruction()),
-            species == modify3$species() ~ paste("Instructions:", modify3$instruction()),
-            species == modify4$species() ~ paste("Instructions:", modify4$instruction()),
-            species == modify5$species() ~ paste("Instructions:", modify5$instruction()),
-            species == modify6$species() ~ paste("Instructions:", modify6$instruction()),
-            species == modify7$species() ~ paste("Instructions:", modify7$instruction()),
-            species == modify8$species() ~ paste("Instructions:", modify8$instruction()),
-            species == modify9$species() ~ paste("Instructions:", modify9$instruction()),
-            species == modify10$species() ~ paste("Instructions:", modify10$instruction()),
-            species == modify11$species() ~ paste("Instructions:", modify11$instruction()),
-            species == modify12$species() ~ paste("Instructions:", modify12$instruction()),
-            TRUE ~ "Instructions:")
+            species == modify1$species() ~ modify1$instruction(),
+            species == modify2$species() ~ modify2$instruction(),
+            species == modify3$species() ~ modify3$instruction(),
+            species == modify4$species() ~ modify4$instruction(),
+            species == modify5$species() ~ modify5$instruction(),
+            species == modify6$species() ~ modify6$instruction(),
+            species == modify7$species() ~ modify7$instruction(),
+            species == modify8$species() ~ modify8$instruction(),
+            species == modify9$species() ~ modify9$instruction(),
+            species == modify10$species() ~ modify10$instruction(),
+            species == modify11$species() ~ modify11$instruction(),
+            species == modify12$species() ~ modify12$instruction(),
+            TRUE ~ "")
           ) %>%
           mutate(next_delivery = get_delivery_date(delivery_day)) %>%
           mutate(next_delivery = as.Date(next_delivery, origin = lubridate::origin)) %>% 

@@ -116,24 +116,27 @@ ui <- dashboardPage(
   body = body, 
   skin = "black")
 
-my_custom_sign_in_page <- sign_in_ui_default(
-  color = "#006169",
-  company_name = "Get Hooked Seafood",
-  logo_top = tags$img(
-    src = "logos/GH_Logo_WB.png",
-    alt = "Get Hooked Seafood Logo",
-    style = "width: 125px; margin-top: 30px; margin-bottom: 30px;"
-  ),
-  logo_bottom = tags$img(
-    src = "logos/logo-white.png",
-    alt = "Get Hooked Seafood Logo",
-    style = "width: 200px; margin-bottom: 15px; padding-top: 15px;"
-  ),
-  icon_href = "GH_Logo_TealBlue.png"
-)
+#Polished
+# my_custom_sign_in_page <- sign_in_ui_default(
+#   color = "#006169",
+#   company_name = "Get Hooked Seafood",
+#   logo_top = tags$img(
+#     src = "logos/GH_Logo_WB.png",
+#     alt = "Get Hooked Seafood Logo",
+#     style = "width: 125px; margin-top: 30px; margin-bottom: 30px;"
+#   ),
+#   logo_bottom = tags$img(
+#     src = "logos/logo-white.png",
+#     alt = "Get Hooked Seafood Logo",
+#     style = "width: 200px; margin-bottom: 15px; padding-top: 15px;"
+#   ),
+#   icon_href = "GH_Logo_TealBlue.png"
+# )
 
-polished::secure_ui(
-  ui,
-  sign_in_page_ui = my_custom_sign_in_page
-)
+#Polished
+# polished::secure_ui(
+#   ui,
+#   sign_in_page_ui = my_custom_sign_in_page
+# )
 
+#secure_ui(ui)

@@ -82,8 +82,11 @@ clean_colname <- function(df, type) {
 clean_subscription <- function(df) {
   
   df %>%
-    mutate(pickup_site_label = paste0(pickup_site, " - ",location)) %>%
-  
+    mutate(location_short = ifelse(str_detect(location, "Los Angeles"), "LA", 
+                             ifelse(str_detect(location, "Santa Barbara"), "SB", location))) %>% 
+    mutate(pickup_site_label = paste0(pickup_site, " ",location_short)) %>%
+    select(-location_short) %>% 
+    
     mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery|Topa"), pickup_site_label, pickup_site)) %>%
     
     #getting share_size
@@ -91,11 +94,12 @@ clean_subscription <- function(df) {
     mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
     
     #get delivery day
-    mutate(delivery_day = str_extract(order_tag, "Tuesday|Wednesday|Thursday")) %>% 
+    mutate(delivery_day = str_extract(customer_tag, "Tuesday|Wednesday|Thursday")) %>% 
     mutate(delivery_day = ifelse(location == "Los Angeles", "LA", delivery_day)) %>% 
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>% 
     
-    mutate(opt_out = gsub("No ", "", opt_out)) %>% 
+    mutate(opt_out = gsub("No ", "", opt_out)) %>%
+#    mutate(opt_out = gsub("|", "", opt_out))
     mutate(share_type = "Fillet") %>%
     
     mutate_if(is.character, str_trim) 
