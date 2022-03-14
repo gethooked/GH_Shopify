@@ -18,10 +18,10 @@ new_member_cutoff <- function(df) {
 # App(s): Main Shares, Species Assignment, Home Delivery
 clean_colname <- function(df, type) {
   
-
+  
   if(type == "Orders") {
     
-      colNames <- c(
+    colNames <- c(
       "order_id", 
       "order_date", 
       "order_time", 
@@ -36,36 +36,63 @@ clean_colname <- function(df, type) {
       "weight_lb", 
       "product_tag",
       "order_tag"
-      )
+    )
     
     position <- c(1:14)
-
+    
   }
+  else if(type == "Subscription") {
+    
+    colNames <- c(
+      "order_id", 
+      "order_date", 
+      "order_time", 
+      "customer_email",
+      "subscription_size",
+      "product_tag",
+      "order_tag",
+      "customer_name"
+      #      "address1",
+      #      "address2",
+      #      "city",
+      #      "state",
+      #      "zip",
+      #      "phone",
+      #      "notes",
+      #      "customer_tag",
+      #      "location",
+      #      "pickup_site",
+      #      "opt_out"
+    )
+    
+    position <- c(1:8)
+  }
+  
   else {
-
-      colNames <- c(
-        "order_id", 
-        "order_date", 
-        "order_time", 
-        "customer_email",
-        "subscription_size",
-        "product_tag",
-        "order_tag",
-        "customer_name",
-        "address1",
-        "address2",
-        "city",
-        "state",
-        "zip",
-        "phone",
-        "notes",
-        "customer_tag",
-        "location",
-        "pickup_site",
-        "opt_out"
-        )
-      
-      position <- c(1:19)
+    colNames <- c(
+      "customer_id",
+      "customer_email",
+      "full_name",
+      "share_size",
+      "pickup_location",
+      "pickup_site",
+      "opt_out",
+      "delivery_day",
+      "address",
+      "delivery_notes",
+      "city",
+      "state",
+      "zip",
+      "phone",
+      "email_verified",
+      "customer_tags",
+      "partner_email"
+      #      "delivery_day",
+      #      "order_count"
+    )
+    
+    position <- c(1:17)
+    
   }
   
   df %>%
@@ -82,27 +109,53 @@ clean_colname <- function(df, type) {
 clean_subscription <- function(df) {
   
   df %>%
-    mutate(location_short = ifelse(str_detect(location, "Los Angeles"), "LA", 
-                             ifelse(str_detect(location, "Santa Barbara"), "SB", location))) %>% 
-    mutate(pickup_site_label = paste0(pickup_site, " ",location_short)) %>%
-    select(-location_short) %>% 
+    mutate(location_abb = ifelse(str_detect(pickup_location, "Los Angeles"), "LA", 
+                             ifelse(str_detect(pickup_location, "Santa Barbara"), "SB", pickup_location))) %>% 
+    mutate(pickup_site_label = paste0(pickup_site, " ",location_abb)) %>%
+    select(-location_abb) %>% 
     
     mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery|Topa"), pickup_site_label, pickup_site)) %>%
     
-    #getting share_size
-    # separate(subscription_size, "share_size", sep = " Share") %>%
+    #share_size
     mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
     
-    #get delivery day
-    mutate(delivery_day = str_extract(customer_tag, "Tuesday|Wednesday|Thursday")) %>% 
-    mutate(delivery_day = ifelse(location == "Los Angeles", "LA", delivery_day)) %>% 
+    #delivery day
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>% 
     
+    #opt-out
     mutate(opt_out = gsub("No ", "", opt_out)) %>%
-#    mutate(opt_out = gsub("|", "", opt_out))
+    mutate(opt_out = gsub("\\|", ", ", opt_out)) %>% 
+    
+    #definte share type
     mutate(share_type = "Fillet") %>%
     
-    mutate_if(is.character, str_trim) 
+    #clean data
+    mutate_at(vars(zip), ~as.numeric(.)) %>%
+    mutate_if(is.character, str_trim) %>% 
+    
+    #select necessary columns
+    select(
+      order_id,
+      order_date,
+      order_time,
+      customer_email,
+      share_size,
+      order_tag,
+      customer_name,
+      pickup_location,
+      pickup_site,
+      pickup_site_label,
+      opt_out,
+      delivery_day,
+      address,
+      city,
+      state,
+      zip,
+      phone,
+      delivery_notes,
+      customer_tags,
+      partner_email
+    )
     
 }
 

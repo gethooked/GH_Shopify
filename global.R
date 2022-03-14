@@ -11,22 +11,7 @@ library(readxl)
 
 # 1. Configuration ==========================================================================
 
-## Configure global sessions for `polished`
-# global_sessions_config(
-#   app_name = "shopify_app",
-#   api_key = "4Ady0VxJ3fmqDvTaBdszpuaSUjGAOr9GDO")
-# 
-# global_sessions_config(
-#   app_name = "<shopify_app>",
-#   api_key = "<4Ady0VxJ3fmqDvTaBdszpuaSUjGAOr9GDO>"
-# )
-
 ## Configure ShinyApps account
-# rsconnect::setAccountInfo(
-#   name = 'beehoover',
-#   token = '4EFBDD20636816D472A997D3D76A6372',
-#   secret = 'JU+3ZGMGBL1IjlCfEsvVy0nYzDFglD4UDNPK8gWw')
-
 rsconnect::setAccountInfo(name='gethookedseafood',
                           token='2404697D4F5E382C8A08C04F99BAD497',
                           secret='UyQyJ38YJgS+EkreQkiQtYhUjXmVVLeZ+sVlSb9E')
@@ -56,25 +41,26 @@ Shopify_Orders_names      <- c("Incoming Orders", "Subscription Orders")
 Product_KEYS      <- read_gs_para(ss = ss["product_keys"], Product_KEYS_id, Product_KEYS_names) 
 Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliveries_id, Active_Deliveries_names)
 
-# # Weekly Orders
+## Weekly Orders
 Shopify_Orders    <- read_gs_para(ss = ss["shopify"], Shopify_Orders_id, Shopify_Orders_names) 
-
-## Only one worksheet is used --------------------------------------------------------------------
 
 ##Weekly order sync
 order_sync   <- Shopify_Orders$`Incoming Orders`
 
-#order_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "1184397264"), col_names = FALSE) 
-#https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=1184397264
-
 ##Weekly subscription sync
 subscription_sync   <- Shopify_Orders$`Subscription Orders`
 
-#subscription_sync   <- read_csv(gs_url(ss = ss["shopify"], sheets_id = "16853773"), col_names = FALSE)
-#https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=16853773
+## Only one worksheet is used --------------------------------------------------------------------
+customer_df <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCUG04TybjFkJSQnLK09R64Hi51FAylgoEVfAk5VEujZts1SSCVNwu_ij8LUH_2V3s6rcvxc8tY/pub?gid=1076032319&single=true&output=csv") %>% 
+  clean_names()
 
 
 # 4. Data Cleaning ==============================================================================
+
+## * customer details  ----------------------------------------------------------
+
+shopify_customers <- customer_df %>% 
+  clean_colname(type = "Customer")
 
 ## * subscriptions for Active Members  ----------------------------------------------------------
 
@@ -83,14 +69,17 @@ shopify_subscription <- subscription_sync %>%
   #Assigning column names and data structure to avoid errors
   clean_colname(type = "Subscription") %>% 
   filter(str_detect(product_tag, "main share")) %>%
-  mutate_at(vars(zip, phone), ~as.numeric(.)) %>% 
-  mutate(address = paste0(address1, address2)) %>% 
-  clean_subscription() %>% 
+  left_join(shopify_customers) %>% 
+  clean_subscription() %>%
   mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>%
   
   #identifying new members that signed up passed monday cutoff 
   clean_date() %>% 
-  new_member_cutoff()
+  #remove test accounts
+  filter(!str_detect(customer_tags, "Test Account")) %>%
+  new_member_cutoff() %>% 
+  lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>% 
+  as.data.frame(stringsAsFactors = FALSE)
 
 ## Active subscriptions for the week - used in mainshare & species assignment  
 
@@ -133,7 +122,7 @@ all_shopify_orders  <- order_sync %>%
 
 
 shopify_orders <- all_shopify_orders %>% 
-  filter(delivery_week == "") %>% 
+#  filter(delivery_week == "") %>% 
   select(-delivery_week)
 
 error_shopify_orders <- all_shopify_orders %>% 
@@ -212,14 +201,29 @@ sites <- sites_df$pickup_site
 sites_list <- split(sites, sites_df $delivery_day_abb) 
 
 
+## Add extra catch of the day
+extra_share<-all_shopify_orders %>% 
+  filter(str_detect(product_tag, "main share")) %>% 
+  filter(!str_detect(product_tag, "main share upgrade")) %>% 
+  select(order_id, order_date, order_time, customer_name, customer_email) %>% 
+  left_join(shopify_customers) %>%
+  mutate(subscription_size = share_size) %>%
+  mutate(order_tag = "extra share") %>% 
+  select(-share_size) %>% 
+  clean_subscription() %>% 
+  mutate(customer_email = paste0(customer_email, "(+1)"),
+         customer_name = paste0(customer_name, "(+1)")) %>% 
+  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>% 
+  lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>% 
+  as.data.frame(stringsAsFactors = FALSE)
+
 ## Core dataset for Main Shares app
-weekly_species11 <- subscription %>% 
+weekly_species11 <- rbind(subscription, extra_share) %>% 
   mutate(species = "unassigned") %>% 
   arrange(desc(order_id)) %>% 
   group_by(customer_email) %>% 
   filter(row_number() == 1) %>% 
   ungroup()
-
   
 
 # * Tab: Share Pounds by Site ----------------------------------------------------------------
@@ -294,7 +298,7 @@ fillet_weight_by_site <- weekly_species11 %>%
    filter(str_detect(pickup_site_label, "Home Delivery")) %>% 
 #   select(email, location, delivery_day) %>% 
 #   left_join(shopify_customers, by = "email") %>% 
-   select(customer_name, address, city, state, zip, phone, notes, customer_email, delivery_day)
+   select(customer_name, address, city, state, zip, phone, notes = delivery_notes, customer_email, delivery_day)
 
   
 
@@ -349,7 +353,7 @@ has_drygoods <- flashsales %>%
 deliveries_to_complete <- rbind(labels     %>% select(customer_name, pickup_site_label, check),
                                 flashsales %>% select(customer_name, pickup_site_label, check)) %>% #day, name, pickupsite label
   filter(str_detect(pickup_site_label, "Home Delivery")) %>%
-  left_join(subscription %>% select(customer_name, address, city, state, zip, phone, notes, 
+  left_join(subscription %>% select(customer_name, address, city, state, zip, phone, notes = delivery_notes, 
                                     customer_email, delivery_day)) %>% #pickup_day, restriction, production day
   left_join(share,             by = c("delivery_day", "customer_name")) %>% #species, sharesize
   left_join(has_drygoods,      by = c("delivery_day", "customer_name")) %>%
@@ -443,6 +447,7 @@ title_SO <- title_with_date("Special Orders")
 fresh_product_by_day <- orders_ED_SO %>% 
   filter(inventory_type == "Fresh Seafood") %>%
   mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>%
+  mutate(weight_lb = ifelse(str_detect(product_name, "Oyster"), as.numeric(variant_name), weight_lb)) %>% 
   group_by(delivery_day, share_type) %>% 
   summarise(total_number = sum(weight_lb))
 
