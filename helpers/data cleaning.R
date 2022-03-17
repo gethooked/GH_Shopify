@@ -72,7 +72,7 @@ clean_colname <- function(df, type) {
     colNames <- c(
       "customer_id",
       "customer_email",
-      "full_name",
+      "customer_name",
       "share_size",
       "pickup_location",
       "pickup_site",
@@ -101,26 +101,19 @@ clean_colname <- function(df, type) {
   
 }
 
-
-
-# clean_subscription: data cleaning for shopify_orders -------------------------------------
-# App(s): Main Shares, Species Assignment
-  
-clean_subscription <- function(df) {
+clean_customer <- function(df) {
   
   df %>%
     mutate(location_abb = ifelse(str_detect(pickup_location, "Los Angeles"), "LA", 
-                             ifelse(str_detect(pickup_location, "Santa Barbara"), "SB", pickup_location))) %>% 
+                                 ifelse(str_detect(pickup_location, "Santa Barbara"), "SB", pickup_location))) %>% 
     mutate(pickup_site_label = paste0(pickup_site, " ",location_abb)) %>%
     select(-location_abb) %>% 
     
     mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery|Topa"), pickup_site_label, pickup_site)) %>%
     
-    #share_size
-    mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
-    
     #delivery day
-    mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>% 
+    mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>%
+    mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>% 
     
     #opt-out
     mutate(opt_out = gsub("No ", "", opt_out)) %>%
@@ -132,6 +125,38 @@ clean_subscription <- function(df) {
     #clean data
     mutate_at(vars(zip), ~as.numeric(.)) %>%
     mutate_if(is.character, str_trim) %>% 
+    
+    #select necessary columns
+    select(
+      customer_email,
+      customer_name,
+      pickup_location,
+      pickup_site,
+      pickup_site_label,
+      opt_out,
+      delivery_day,
+      delivery_day_abb,
+      address,
+      city,
+      state,
+      zip,
+      phone,
+      delivery_notes,
+      customer_tags,
+      partner_email
+    )
+  
+}
+
+# clean_subscription: data cleaning for shopify_orders -------------------------------------
+# App(s): Main Shares, Species Assignment
+  
+clean_subscription <- function(df) {
+  
+  df %>%
+    
+    #share_size
+    mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
     
     #select necessary columns
     select(

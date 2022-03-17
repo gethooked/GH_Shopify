@@ -44,14 +44,16 @@ Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliverie
 ## Weekly Orders
 Shopify_Orders    <- read_gs_para(ss = ss["shopify"], Shopify_Orders_id, Shopify_Orders_names) 
 
-##Weekly order sync
-order_sync   <- Shopify_Orders$`Incoming Orders`
+  ## Weekly order sync
+  order_sync   <- Shopify_Orders$`Incoming Orders` %>% 
+    clean_colname(type = "Orders")
 
-##Weekly subscription sync
-subscription_sync   <- Shopify_Orders$`Subscription Orders`
+  ## Weekly subscription sync
+  subscription_sync   <- Shopify_Orders$`Subscription Orders` %>% 
+    clean_colname(type = "Subscription")
 
 ## Only one worksheet is used --------------------------------------------------------------------
-customer_df <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCUG04TybjFkJSQnLK09R64Hi51FAylgoEVfAk5VEujZts1SSCVNwu_ij8LUH_2V3s6rcvxc8tY/pub?gid=1076032319&single=true&output=csv") %>% 
+customer_raw <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCUG04TybjFkJSQnLK09R64Hi51FAylgoEVfAk5VEujZts1SSCVNwu_ij8LUH_2V3s6rcvxc8tY/pub?gid=1076032319&single=true&output=csv") %>% 
   clean_names()
 
 
@@ -59,22 +61,27 @@ customer_df <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCU
 
 ## * customer details  ----------------------------------------------------------
 
-shopify_customers <- customer_df %>% 
+shopify_customers <- customer_raw %>% 
   clean_colname(type = "Customer")
+  
+customer_df <- order_sync %>% 
+  select(customer_email) %>% 
+  full_join(subscription_sync %>% select(customer_email)) %>% 
+  unique() %>% 
+  left_join(shopify_customers) %>% 
+  clean_customer()
 
 ## * subscriptions for Active Members  ----------------------------------------------------------
 
 shopify_subscription <- subscription_sync %>%
   
-  #Assigning column names and data structure to avoid errors
-  clean_colname(type = "Subscription") %>% 
   filter(str_detect(product_tag, "main share")) %>%
-  left_join(shopify_customers) %>% 
+  left_join(customer_df) %>% 
   clean_subscription() %>%
-  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>%
   
   #identifying new members that signed up passed monday cutoff 
   clean_date() %>% 
+    
   #remove test accounts
   filter(!str_detect(customer_tags, "Test Account")) %>%
   new_member_cutoff() %>% 
@@ -89,18 +96,19 @@ subscription <- shopify_subscription  %>%
 
 ## New subscriptions for next week - to be exported and fulfilled the following week 
 subscription_nextweek <- shopify_subscription %>% 
-  filter(delivery_week == "Next Week") %>% 
-  select("Order Name" = order_id)
+  filter(delivery_week == "Next Week")
 
 ## * Incoming orders ---------------------------------------------------------------------------
 
+orders_recharge <- subscription_sync %>% 
+  clean_colname(type = "Subscription")
+
+
 all_shopify_orders  <- order_sync %>%
-  
-  #Assigning column names and data structure to avoid errors
-  clean_colname(type = "Orders") %>%
   clean_date() %>%
   mutate(order_time = str_remove_all(order_time, " ")) %>% 
-  filter(str_detect(order_id, "#")) %>% 
+  filter(str_detect(order_id, "#")) %>%
+  new_member_cutoff() %>%
 
   #route notation for checklists if order is "dry goods"
   mutate(route_notation = ifelse(str_detect(product_tag, "Packing Method:Bag"), "yes", ""),
@@ -115,7 +123,7 @@ all_shopify_orders  <- order_sync %>%
   left_join(shiny_category_df) %>%
   
   #add customer detail to orders
-  left_join(shopify_subscription  %>% select(customer_email, pickup_site_label, delivery_day, delivery_day_abb, delivery_week)) %>% 
+  left_join(customer_df  %>% select(customer_email, pickup_site_label, delivery_day, delivery_day_abb)) %>% 
   lapply(gsub, pattern = "&amp;", replacement = "&", fixed = TRUE) %>% 
   as.data.frame(stringsAsFactors = FALSE) %>% 
   mutate_at(vars(quantity, weight_lb), ~as.numeric(.))
@@ -191,7 +199,7 @@ opt_out_extra <- Product_KEYS$Share_Size_Variant %>%
 
 ### Choices for "Select Delivery Locations" in the sidebar
 
-sites_df <- subscription %>% 
+sites_df <- customer_df %>% 
   distinct(pickup_site, .keep_all = TRUE)
 
 sites <- sites_df$pickup_site 
@@ -204,16 +212,14 @@ sites_list <- split(sites, sites_df $delivery_day_abb)
 ## Add extra catch of the day
 extra_share<-all_shopify_orders %>% 
   filter(str_detect(product_tag, "main share")) %>% 
-  filter(!str_detect(product_tag, "main share upgrade")) %>% 
-  select(order_id, order_date, order_time, customer_name, customer_email) %>% 
-  left_join(shopify_customers) %>%
-  mutate(subscription_size = share_size) %>%
+  filter(!str_detect(product_tag, "main share upgrade")) %>%
+  mutate(subscription_size = str_extract(variant_name, "Small|Medium|Large|XL")) %>% 
+  select(order_id, order_date, order_time, customer_name, customer_email, subscription_size) %>% 
+  left_join(customer_df) %>%
   mutate(order_tag = "extra share") %>% 
-  select(-share_size) %>% 
   clean_subscription() %>% 
   mutate(customer_email = paste0(customer_email, "(+1)"),
          customer_name = paste0(customer_name, "(+1)")) %>% 
-  mutate(delivery_day_abb = toupper(substr(delivery_day, 1, 3))) %>% 
   lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>% 
   as.data.frame(stringsAsFactors = FALSE)
 
@@ -397,7 +403,8 @@ orders_ED_SO <- shopify_orders %>%
   #data cleaning
   mutate(share_type = replace_na(product_name, "") %>% trimws) %>% 
   mutate(share_size = ifelse(variant_name == "", 1, variant_name) %>% trimws) %>% 
-  mutate(source = "Store") 
+  mutate(source = "Store")
+
 
 
 #data set used for ED/SO labels
@@ -413,7 +420,9 @@ all_ED_SO <- orders_ED_SO %>%
                                  "Thaw under refrigeration immediately before use", " ")) %>% 
   arrange(delivery_day, customer_name, share_type, share_size) %>% 
   select(shiny_category, timestamp, customer_email, customer_name, spacer_1, share_type, share_size, spacer_2, 
-         pickup_site_label, date, instructions_1, instructions_2, source, delivery_day)
+         pickup_site_label, date, instructions_1, instructions_2, source, delivery_day) 
+
+  
 
 
 
