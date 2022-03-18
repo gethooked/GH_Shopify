@@ -500,10 +500,6 @@ special_orders_all <- all_ED_SO %>%
     df %>% select(-shiny_category)})
 
 # * Buttons: Download WED/THU/LA Labels with routes ---------------------------------------------------------
-route <-  read_csv(gs_url(ss = ss["home_delivery"], sheets_id = "2080672642")) %>% 
-  select(customer_name = name, driver_stop_route) %>%
-  filter(customer_name != "name")%>%
-  filter(!str_detect(driver_stop_route, "~"))
 
 dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
   filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
