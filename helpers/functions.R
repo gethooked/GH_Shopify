@@ -153,8 +153,8 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
                    "home_delivery_name"))%>%
     mutate(type = "subscription") %>% 
     mutate(customer_name = as.character(customer_name)) %>% 
-#    mutate(home_delivery_name = as.character(home_delivery_name)) %>% 
-#    mutate(name = ifelse(name == "Home Delivery", home_delivery_name, name)) %>% 
+    mutate(home_delivery_name = as.character(home_delivery_name)) %>% 
+    mutate(customer_name = ifelse(customer_name == "Home Delivery", home_delivery_name, customer_name)) %>% 
     select(pickup_site_label, customer_name, species, share_size, type)
   
 #  flashsale_check <- Active_Deliveries[[paste0("Flashsales_", "THU")]] %>%

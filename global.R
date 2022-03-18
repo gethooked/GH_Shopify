@@ -69,7 +69,12 @@ customer_df <- order_sync %>%
   full_join(subscription_sync %>% select(customer_email)) %>% 
   unique() %>% 
   left_join(shopify_customers) %>% 
-  clean_customer()
+  clean_customer()%>% 
+  lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>%
+  lapply(gsub, pattern = "&quot;", replacement = "", fixed = TRUE) %>% 
+  as.data.frame(stringsAsFactors = FALSE) %>% 
+  mutate(opt_out = ifelse(is.na(opt_out), "None",
+                          ifelse(str_detect(opt_out, "try it all"), "None", opt_out)))
 
 ## * subscriptions for Active Members  ----------------------------------------------------------
 
@@ -84,9 +89,7 @@ shopify_subscription <- subscription_sync %>%
     
   #remove test accounts
   filter(!str_detect(customer_tags, "Test Account")) %>%
-  new_member_cutoff() %>% 
-  lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>% 
-  as.data.frame(stringsAsFactors = FALSE)
+  new_member_cutoff() 
 
 ## Active subscriptions for the week - used in mainshare & species assignment  
 
@@ -96,7 +99,8 @@ subscription <- shopify_subscription  %>%
 
 ## New subscriptions for next week - to be exported and fulfilled the following week 
 subscription_nextweek <- shopify_subscription %>% 
-  filter(delivery_week == "Next Week")
+  filter(delivery_week == "Next Week") %>% 
+  mutate(error_type = "Missed Cutoff")
 
 ## * Incoming orders ---------------------------------------------------------------------------
 
@@ -132,11 +136,26 @@ all_shopify_orders  <- order_sync %>%
 shopify_orders <- all_shopify_orders %>% 
 #  filter(delivery_week == "") %>% 
   select(-delivery_week)
+ 
 
-error_shopify_orders <- all_shopify_orders %>% 
-  filter(delivery_week == "Next Week" | is.na(delivery_week)) %>%
-  mutate(error_type = ifelse(is.na(delivery_week), "no subscription order", delivery_week)) %>% 
-  select(-delivery_week)
+#error types for orders not going through  
+error_no_sub <- all_shopify_orders %>% 
+  left_join(shopify_subscription %>% select(customer_email) %>% mutate(source = "subscription") %>% unique()) %>% 
+  filter(is.na(source)) %>% 
+  mutate(error_type = "no subscription order") %>% 
+  select(-source)
+
+error_missing_category <- all_shopify_orders %>% 
+  filter(!str_detect(product_tag, "main share")) %>% 
+  mutate(error_type = "missing production tag") %>% 
+  filter(is.na(inventory_type)|is.na(deadline_type))
+
+error_customer_info <- all_shopify_orders %>% 
+  mutate(error_type = ifelse(is.na(delivery_day), "missing day",
+                             ifelse(str_detect(pickup_site_label, "NA"), "missing site/location", " "))) %>% 
+  filter(error_type != " ")
+
+flashsale_error <- rbind(error_no_sub, error_missing_category, error_customer_info)
 
 # 4.1 Main Shares & Species Assignment ==========================================================
 
@@ -229,7 +248,7 @@ weekly_species11 <- rbind(subscription, extra_share) %>%
   arrange(desc(order_id)) %>% 
   group_by(customer_email) %>% 
   filter(row_number() == 1) %>% 
-  ungroup()
+  ungroup() 
   
 
 # * Tab: Share Pounds by Site ----------------------------------------------------------------
@@ -384,7 +403,7 @@ check_address <- deliveries_to_complete %>%
 # # * Tab: Routesavvy File/Button: Download Routesavvy File ------------------------------------------
 deliveries_routesavvy <- deliveries_to_complete %>%
   select(delivery_day, folder = delivery_date, customer_name, address,
-         city, state, zip, note2 = phone)
+         city, state, zip, note2 = phone, notes)
 
 
 
