@@ -52,17 +52,6 @@ clean_colname <- function(df, type) {
       "product_tag",
       "order_tag",
       "customer_name"
-      #      "address1",
-      #      "address2",
-      #      "city",
-      #      "state",
-      #      "zip",
-      #      "phone",
-      #      "notes",
-      #      "customer_tag",
-      #      "location",
-      #      "pickup_site",
-      #      "opt_out"
     )
     
     position <- c(1:8)
@@ -87,8 +76,6 @@ clean_colname <- function(df, type) {
       "email_verified",
       "customer_tags",
       "partner_email"
-      #      "delivery_day",
-      #      "order_count"
     )
     
     position <- c(1:17)
@@ -100,6 +87,8 @@ clean_colname <- function(df, type) {
     `colnames<-`(colNames) 
   
 }
+
+
 
 clean_customer <- function(df) {
   

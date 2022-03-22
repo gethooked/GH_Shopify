@@ -63,18 +63,20 @@ customer_raw <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOC
 
 shopify_customers <- customer_raw %>% 
   clean_colname(type = "Customer")
-  
-customer_df <- order_sync %>% 
-  select(customer_email) %>% 
-  full_join(subscription_sync %>% select(customer_email)) %>% 
-  unique() %>% 
-  left_join(shopify_customers) %>% 
-  clean_customer()%>% 
-  lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>%
-  lapply(gsub, pattern = "&quot;", replacement = "", fixed = TRUE) %>% 
-  as.data.frame(stringsAsFactors = FALSE) %>% 
-  mutate(opt_out = ifelse(is.na(opt_out), "None",
-                          ifelse(str_detect(opt_out, "try it all"), "None", opt_out)))
+
+  ## * Customer with orders this week -------------------------------------------------------------
+    
+  customer_df <- order_sync %>% 
+    select(customer_email) %>% 
+    full_join(subscription_sync %>% select(customer_email)) %>% 
+    unique() %>% 
+    left_join(shopify_customers) %>% 
+    clean_customer()%>% 
+    lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>%
+    lapply(gsub, pattern = "&quot;", replacement = "", fixed = TRUE) %>% 
+    as.data.frame(stringsAsFactors = FALSE) %>% 
+    mutate(opt_out = ifelse(is.na(opt_out), "None",
+                            ifelse(str_detect(opt_out, "try it all"), "None", opt_out)))
 
 ## * subscriptions for Active Members  ----------------------------------------------------------
 
@@ -441,9 +443,6 @@ all_ED_SO <- orders_ED_SO %>%
   select(shiny_category, timestamp, customer_email, customer_name, spacer_1, share_type, share_size, spacer_2, 
          pickup_site_label, date, instructions_1, instructions_2, source, delivery_day) 
 
-  
-
-
 
 # 4.4.1 Early Orders ----------------------------------------------------------------------------------------
 title_ED <- title_with_date("Early Deadline Orders")
@@ -509,15 +508,7 @@ dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
   mutate(instructions_1 = "",
          instructions_2 = "") %>%
   mutate(customer_name = as.character(customer_name)) %>% 
-  left_join(route, by = "customer_name") %>%
-  replace_na(list(driver_stop_route = "")) %>%
   mutate(PSL = pickup_site_label) %>% 
-  mutate(route_order = str_extract(driver_stop_route, "[0-9]+")) %>%
-  mutate(route_driver = str_extract(driver_stop_route, "[a-zA-Z]+")) %>%
-  mutate(pickup_site_label = ifelse(driver_stop_route == "", 
-                                     pickup_site_label, driver_stop_route))%>%
-  arrange(delivery_day, route_driver, as.numeric(route_order), 
-          pickup_site_label, customer_name, share_type) %>% 
   select(Timestamp, customer_email, customer_name, spacer_1, share_type, share_size, 
          spacer_2, pickup_site_label, date, instructions_1, instructions_2, source, 
          order, price, delivery_day, PSL)
