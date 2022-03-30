@@ -154,7 +154,7 @@ error_missing_category <- all_shopify_orders %>%
 
 error_customer_info <- all_shopify_orders %>% 
   mutate(error_type = ifelse(is.na(delivery_day), "missing day",
-                             ifelse(str_detect(pickup_site_label, "NA"), "missing site/location", " "))) %>% 
+                             ifelse(str_detect(pickup_site_label, " NA")|str_detect(pickup_site_label, "NA "), "missing site/location", " "))) %>% 
   filter(error_type != " ")
 
 flashsale_error <- rbind(error_no_sub, error_missing_category, error_customer_info)

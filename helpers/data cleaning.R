@@ -75,10 +75,13 @@ clean_colname <- function(df, type) {
       "phone",
       "email_verified",
       "customer_tags",
-      "partner_email"
+      "partner_email", 
+      "deliv_week_day",
+      "order_count",
+      "homedelivery_instructions"
     )
     
-    position <- c(1:17)
+    position <- c(1:20)
     
   }
   
@@ -132,7 +135,8 @@ clean_customer <- function(df) {
       phone,
       delivery_notes,
       customer_tags,
-      partner_email
+      partner_email,
+      homedelivery_instructions
     )
   
 }
