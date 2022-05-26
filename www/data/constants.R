@@ -3,10 +3,28 @@ datatable_options <- list(scrollX = TRUE, scrollY = "400px",
                           scrollCollapse = TRUE, paging = FALSE)
 
 # Global: TUE/WED/THU Dates ----------------------------------------------------------------------------------------
+# wday_date <- function(w) {
+#   sunday_date <- floor_date(today() - 1, "weeks")
+#   sunday_date + w
+# }
+
+
 wday_date <- function(w) {
-  sunday_date <- floor_date(today() - 1, "weeks")
+  
+  currentDay <- weekdays(Sys.Date())
+  
+  if (currentDay %in% c("Monday", "Tuesday", "Wednesday", "Thursday")){
+    sunday_date <- floor_date(today(), "weeks")
+  }
+  
+  else {
+    sunday_date <- floor_date(today() + 2, "weeks")
+  }
+  
   sunday_date + w
+
 }
+
 
 # # dates of Tuesday/Wednesday/Thursday
 # nextTUE <- wday_date(2)
@@ -16,6 +34,9 @@ wday_date <- function(w) {
 # Cutoff date for new members in Species Assignment (Monday before last)
 cutoff <- wday_date(3) - 17
 cutoff_date <- wday_date(0)
+
+# Start of this production week
+week_start <- wday_date(-2)
 
 # delivery day
 delivery_day_levels <- c("Tuesday", "Wednesday", "Thursday", "LA")

@@ -1,6 +1,6 @@
 # title_with_date: generate titles for Special Orders & Early Deadline Orders -------------
 title_with_date <- function(title) {
-  paste(title, wday_date(2), "to", wday_date(4)) 
+  paste(title, wday_date(-2), "to", wday_date(4)) 
 }
 
 # gs_url: generate Google Sheet publishing link
@@ -232,6 +232,7 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
 
 
 ## Combine sheets in Active Deliveries by rows
+## Combine sheets in Active Deliveries by rows
 rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
   
   if(type == "Labels") {
@@ -260,10 +261,10 @@ rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
                    "price",
                    "delivery_day"))
   }
-
+  
   lapply(delivery_day_levels, function(deliv_day) {
-           Active_Deliveries[[paste0(type, "_", toupper(substr(deliv_day, 1, 3)))]] %>%
-             `colnames<-`(colNames) %>% mutate(delivery_day = deliv_day)}) %>%
+    Active_Deliveries[[paste0(type, "_", toupper(substr(deliv_day, 1, 3)))]] %>%
+      `colnames<-`(colNames) %>% mutate(delivery_day = deliv_day)}) %>%
     do.call(rbind, .) %>%
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels))
 }

@@ -203,7 +203,7 @@ Species_Assignment_Server <- function(id) {
       # Call Species Selection Module ----------------------------------------------------------
       clear_all <- reactive({input$clear_all})
       
-      # Below are in reversed order (4 -> 1) because "Clear Last Species" button
+      # Below are in reversed order (6 -> 1) because "Clear Last Species" button
       # is based on the newest species
       
       species_select6 <- species_selection_Server(
@@ -297,11 +297,18 @@ Species_Assignment_Server <- function(id) {
       
       subs_all <- reactive({
         temp <- weekly_species6() %>%
-          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>%
-          mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Stick")), 
-                                         as.character(share_upgrade), "")) %>% 
-          mutate(species = ifelse(species_choice == "", species, str_remove(species_choice, "(?=\\-).+")),
-                 species = trimws(species)) 
+          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
+          mutate(species_choice = ifelse(!is.na(share_upgrade), 
+                                         as.character(share_upgrade), ""))%>%
+          mutate(species = if_else(is.na(species_choice) | species_choice == "", species, species_choice)) %>% 
+          mutate(species = trimws(species))%>% 
+          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
+        
+          # left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>%
+          # mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Stick")), 
+          #                                as.character(share_upgrade), "")) %>% 
+          # mutate(species = ifelse(species_choice == "", species, str_remove(species_choice, "(?=\\-).+")),
+          #        species = trimws(species)) 
         
         
       })
@@ -312,14 +319,13 @@ Species_Assignment_Server <- function(id) {
       weekly_species <- reactive({
         subs_all() %>% 
           select(customer_name, species, share_size, delivery_day, 
-                 pickup_site, pickup_site_label, customer_email) %>% 
+                 pickup_site, pickup_site_label, customer_email, share_type) %>% 
           arrange(delivery_day, species, share_size, pickup_site_label)
       })
       
       ## Tab: Share Counts -----------------------------------------------------------------
       share_count <- reactive({
         weekly_species() %>%
-#          filter(share_size != "FishHead") %>% 
           group_by(delivery_day, share_size, species) %>% 
           tally() %>% 
           arrange(species)
@@ -543,9 +549,10 @@ Species_Assignment_Server <- function(id) {
                                "Home Delivery", customer_name)) %>%
           mutate(spacer_1 = "~", spacer_2 = "~", spacer_3 = "~~~~~~~~~~") %>%
           left_join(share_size_list) %>%
+          left_join(fillet_size_list) %>% 
           select(customer_name, spacer_1, share_size_label, species, spacer_1, caught_by, gear_type,
                  landing_port, spacer_2, expiration_day, instructions, spacer_3,
-                 pickup_site_label, next_delivery, home_delivery_name, delivery_day) %>%
+                 pickup_site_label, next_delivery, home_delivery_name, delivery_day, fillet_size_label) %>%
           arrange(next_delivery, species, share_size_label, pickup_site_label,
                   customer_name, home_delivery_name) %>%
           mutate(delivery_day = toupper(substr(delivery_day, 1, 3)))%>%
@@ -584,6 +591,16 @@ Species_Assignment_Server <- function(id) {
           mutate(day_tag = format(today(), "%m.%d.%y")) %>% 
           mutate(species = paste0(day_tag, species)) %>%
           select(-day_tag) 
+        
+        partner_subscription <- primary_subscription %>% 
+          left_join(partner_email) %>% 
+          filter(!is.na(partner_email)) %>% 
+          mutate(type = "partner") %>% 
+          mutate(customer_email = partner_email) %>% 
+          select(last_name, first_name, customer_email, pickup_site,	delivery_day,	species,	next_delivery,	type)
+        
+        rbind(primary_subscription, partner_subscription)
+          
       
       })
       

@@ -50,33 +50,33 @@ sidebar <- dashboardSidebar(
                     icon = icon("angle-right"),
                     tabName = "Tab_Species_Assignment"),
 
-        menuSubItem("Early Deadline Orders", 
+        menuSubItem("Early Deadline Orders",
                      icon = icon("angle-right"),
                      tabName = "Tab_Early_Orders"),
-         
+
         menuSubItem("Special Orders",
                     icon = icon("angle-right"),
                     tabName = "Tab_Special_Orders"),
-        
+
         menuSubItem("Home Delivery",
                     icon = icon("angle-right"),
                     tabName = "Tab_Home_Delivery"),
 
         menuSubItem("Checklists",
                     icon = icon("angle-right"),
-                    tab = "Tab_Checklists")
-      )
+                    tab = "Tab_Checklists"),
+        
+        menuSubItem("Error Check",
+                    icon = icon("angle-right"),
+                    tab = "Tab_Errors")
+        )
       # ,
       # 
       # menuItem(
-      #   "Data", 
-      #   icon = icon("table"), 
-      #   startExpanded = TRUE,
-      #   
-      #   menuSubItem("Monthly Bag Counts", 
-      #               icon = icon("angle-right"),
-      #               tab = "Tab_Bag_Counts")
-      # )
+      #   "Error Check",
+      #   icon = icon("table"),
+      #   tab = "Tab_Errors"
+      #)
     )
   )
 )
@@ -104,8 +104,8 @@ body <- dashboardBody(
      tabItem(tabName = "Tab_Early_Orders", Early_Orders_UI("Panel_Early_Orders")),
      tabItem(tabName = "Tab_Special_Orders", Special_Orders_UI("Panel_Special_Orders")),
      tabItem(tabName = "Tab_Checklists", Checklists_UI("Panel_Checklists")),
-     tabItem(tabName = "Tab_Home_Delivery", Home_Delivery_UI("Panel_Home_Delivery"))
-    # tabItem(tabName = "Tab_Bag_Counts", Bag_Counts_UI("Panel_Bag_Counts"))
+     tabItem(tabName = "Tab_Home_Delivery", Home_Delivery_UI("Panel_Home_Delivery")),
+     tabItem(tabName = "Tab_Errors", Errors_UI("Panel_Errors"))
   )
 )
 
@@ -115,28 +115,3 @@ ui <- dashboardPage(
   sidebar = sidebar, 
   body = body, 
   skin = "black")
-
-#Polished
-# my_custom_sign_in_page <- sign_in_ui_default(
-#   color = "#006169",
-#   company_name = "Get Hooked Seafood",
-#   logo_top = tags$img(
-#     src = "logos/GH_Logo_WB.png",
-#     alt = "Get Hooked Seafood Logo",
-#     style = "width: 125px; margin-top: 30px; margin-bottom: 30px;"
-#   ),
-#   logo_bottom = tags$img(
-#     src = "logos/logo-white.png",
-#     alt = "Get Hooked Seafood Logo",
-#     style = "width: 200px; margin-bottom: 15px; padding-top: 15px;"
-#   ),
-#   icon_href = "GH_Logo_TealBlue.png"
-# )
-
-#Polished
-# polished::secure_ui(
-#   ui,
-#   sign_in_page_ui = my_custom_sign_in_page
-# )
-
-#secure_ui(ui)

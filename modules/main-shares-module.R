@@ -61,7 +61,9 @@ Main_Shares_UI <- function(id) {
               tabPanel("Share Pounds by Site", dataTableOutput(ns("fillet_weight_by_site"))),
               tabPanel("No Assignment", dataTableOutput(ns("no_assignment"))),
               tabPanel("All Main Shares", dataTableOutput(ns("weekly_species"))),
-              tabPanel("Missed Cutoff", dataTableOutput(ns("subscription_nextweek")))
+              tabPanel("Missed Cutoff", dataTableOutput(ns("subscription_nextweek"))),
+              tabPanel("Duplicate Subscription Orders", dataTableOutput(ns("duplicate_subscriptions")))
+              
               
             )
           )
@@ -131,26 +133,29 @@ Main_Shares_Server <- function(id) {
       
       subs_all <- reactive({
         temp <- weekly_species4() %>%
-#        temp2<-weekly_species11 %>% 
-          left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>% 
-          mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Pick")), 
+  #      temp2<-weekly_species11 %>% 
+          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
+          mutate(species_choice = ifelse(!is.na(share_upgrade), 
                                          as.character(share_upgrade), ""))%>%
           mutate(species = if_else(is.na(species_choice) | species_choice == "", 
-                                   species, str_remove(species_choice, "(?=\\-).+"))) %>% 
-          mutate(species = trimws(species))
+                                   species, species_choice)) %>% 
+          mutate(species = trimws(species)) %>% 
+          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
         
       })
       
       # Tab: All Main Shares ----------------------------------------------------------------
       weekly_species <- reactive({
-        subs_all() %>% 
-          select(customer_name, species, share_size, pickup_site, delivery_day) %>% 
+        subs_all() %>%
+ #       temp3<-  temp2 %>% 
+          select(customer_name, species, share_size, pickup_site, delivery_day, share_type) %>% 
           arrange(delivery_day, species, share_size, pickup_site)
       })
       
       # Tab: Share Counts -------------------------------------------------------------------
       share_count <- reactive({
         weekly_species() %>%
+#          temp4<-  temp3 %>% 
           group_by(delivery_day, share_size, species) %>% 
           tally() %>% 
           arrange(delivery_day, species)
@@ -158,7 +163,8 @@ Main_Shares_Server <- function(id) {
       
       # Tab: Amounts Assigned  --------------------------------------------------------------
       share_fillet <- reactive({
-        share_count() %>% 
+        share_count() %>%
+#          temp5<-temp4 %>% 
           mutate(type = str_extract(tolower(species), type_list)) %>%
           mutate(type = ifelse(tolower(species) %in% flash_fillet, NA_character_, type)) %>%
           mutate(type_singular = singularize(type)) %>%
@@ -242,6 +248,12 @@ Main_Shares_Server <- function(id) {
       output$subscription_nextweek <- renderDataTable({
         datatable_export(subscription_nextweek, title = "Missed Cutoff - New Member Subscription")
       })
+      
+      ## Check new member cutoff 
+      output$duplicate_subscriptions <- renderDataTable({
+        datatable_export(double_order_check, title = "Check - Dublicate Subscription Orders")
+      })
+      
       
       # Share Size Floating Window =========================================================
       output$share_size <- renderDataTable({

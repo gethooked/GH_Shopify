@@ -11,7 +11,7 @@ clean_date <- function(df) {
 new_member_cutoff <- function(df) {
   
   df %>% 
-    mutate(delivery_week = ifelse(str_detect(order_tag, "1st Order") & order_date > cutoff_date, "Next Week", ""))
+    mutate(delivery_week = ifelse(str_detect(order_tags, "1st Order") & order_date > cutoff_date, "Next Week", ""))
 }
 
 
@@ -24,21 +24,28 @@ clean_colname <- function(df, type) {
     colNames <- c(
       "order_id", 
       "order_date", 
-      "order_time", 
+      "order_time",
+      "customer_id",
       "customer_name",
       "customer_email",
       "product_name", 
       "variant_name",
-      "product_type",
-      "product_vendor",
-      "quantity", 
-      "sku", 
-      "weight_lb", 
-      "product_tag",
-      "order_tag"
+      "vendor",
+      "quantity",
+      "price",
+      "deadline_type",
+      "inventory_type",
+      "size",
+      "size_unit",
+      "packing_method",
+      "checklist_notation",
+      "sku",
+      "order_tags",
+      "prod_day",
+      "product_tags"
     )
     
-    position <- c(1:14)
+    position <- c(1:21)
     
   }
   else if(type == "Subscription") {
@@ -57,6 +64,24 @@ clean_colname <- function(df, type) {
     position <- c(1:8)
   }
   
+  # Order Sync Sheet
+  else if(type == "Order_Status") {
+    
+    colNames <- c(
+      "order_id", 
+      "orderCreatedAt", 
+      "orderEmail", 
+      "orderLineItems",
+      "order_tags",
+      "orderStatus",
+      "orderCancelledAt",
+      "orderLineItemsID",
+      "orderURL"
+    )
+    
+    position <- c(1:9)
+  }
+  ## Customers
   else {
     colNames <- c(
       "customer_id",
@@ -67,8 +92,8 @@ clean_colname <- function(df, type) {
       "pickup_site",
       "opt_out",
       "delivery_day",
-      "address",
-      "delivery_notes",
+      "address1",
+      "address2",
       "city",
       "state",
       "zip",
@@ -78,10 +103,12 @@ clean_colname <- function(df, type) {
       "partner_email", 
       "deliv_week_day",
       "order_count",
-      "homedelivery_instructions"
+      "homedelivery_instructions",
+      "customer_created_at",
+      "customer_updated_at"
     )
     
-    position <- c(1:20)
+    position <- c(1:22)
     
   }
   
@@ -92,16 +119,20 @@ clean_colname <- function(df, type) {
 }
 
 
-
 clean_customer <- function(df) {
   
   df %>%
-    mutate(location_abb = ifelse(str_detect(pickup_location, "Los Angeles"), "LA", 
-                                 ifelse(str_detect(pickup_location, "Santa Barbara"), "SB", pickup_location))) %>% 
-    mutate(pickup_site_label = paste0(pickup_site, " ",location_abb)) %>%
-    select(-location_abb) %>% 
     
-    mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery|Topa"), pickup_site_label, pickup_site)) %>%
+    #mutate(location_abb = ifelse(str_count(pickup_location) > 10, gsub("[^A-Z]","", pickup_location), pickup_location)) %>%
+    mutate(location_abb = ifelse(str_detect(pickup_location, " "), gsub("[^A-Z]","", pickup_location), pickup_location)) %>%
+    mutate(pickup_site = ifelse(str_detect(pickup_site, "Home Delivery"), paste0(pickup_site, " ",location_abb), 
+                                  ifelse(str_detect(pickup_site, "Topa"), paste0("Topa Topa", " ",location_abb), 
+                                         ifelse(str_detect(pickup_site, "Rincon"), paste(pickup_site, substr(pickup_location, 1, 4)), 
+                                                                                         pickup_site)))) %>% 
+      
+    mutate(pickup_site_label = ifelse(str_detect(pickup_site, regex('santa monica', ignore_case = T)), word(pickup_site, 1,3),
+                                        ifelse(str_detect(pickup_site, ":"), sub(":.*", "", pickup_site), pickup_site))) %>% 
+    select(-location_abb) %>% 
     
     #delivery day
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>%
@@ -117,27 +148,12 @@ clean_customer <- function(df) {
     #clean data
     mutate_at(vars(zip), ~as.numeric(.)) %>%
     mutate_if(is.character, str_trim) %>% 
-    
-    #select necessary columns
-    select(
-      customer_email,
-      customer_name,
-      pickup_location,
-      pickup_site,
-      pickup_site_label,
-      opt_out,
-      delivery_day,
-      delivery_day_abb,
-      address,
-      city,
-      state,
-      zip,
-      phone,
-      delivery_notes,
-      customer_tags,
-      partner_email,
-      homedelivery_instructions
-    )
+    lapply(gsub, pattern = "&#039;", replacement = "'", fixed = TRUE) %>%
+    lapply(gsub, pattern = "&quot;", replacement = "", fixed = TRUE) %>% 
+    as.data.frame(stringsAsFactors = FALSE) %>% 
+    mutate(opt_out = ifelse(is.na(opt_out), "None",
+                            ifelse(str_detect(opt_out, "try it all"), "None", opt_out))) %>% 
+    mutate(address = paste0(address1, ", ", address2))
   
 }
 
@@ -148,8 +164,12 @@ clean_subscription <- function(df) {
   
   df %>%
     
+    uncount(as.integer(quantity), .remove = FALSE, .id = "id") %>% 
     #share_size
-    mutate(share_size = ifelse(subscription_size == "XL", "ExtraLarge", subscription_size)) %>% 
+    mutate(share_size = str_extract(product_name,"(\\w+)")) %>% 
+    mutate(share_size = ifelse(share_size == "XL", "ExtraLarge", share_size)) %>%
+    mutate(delivery_notes = homedelivery_instructions) %>% 
+    filter(str_detect(order_id, "#")) %>% 
     
     #select necessary columns
     select(
@@ -158,7 +178,8 @@ clean_subscription <- function(df) {
       order_time,
       customer_email,
       share_size,
-      order_tag,
+      id,
+      order_tags,
       customer_name,
       pickup_location,
       pickup_site,
@@ -172,7 +193,8 @@ clean_subscription <- function(df) {
       phone,
       delivery_notes,
       customer_tags,
-      partner_email
+      partner_email,
+      price
     )
     
 }

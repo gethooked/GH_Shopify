@@ -1,10 +1,4 @@
 server <- function(input, output, session) {
-  #Polished
-  # observeEvent(input$sign_out, {
-  #   req(session$userData$user()$email)
-  #   sign_out_from_shiny(session)
-  #   session$reload()
-  # })
   
   observeEvent(input$restart, {
     req(session$userData$user()$email)
@@ -14,14 +8,12 @@ server <- function(input, output, session) {
     removeModal()
   })
   
-   Main_Shares_Server("Panel_Main_Shares")
-   Species_Assignment_Server("Panel_Species_Assignment")
-   Early_Orders_Server("Panel_Early_Orders")
-   Special_Orders_Server("Panel_Special_Orders")
-   Checklists_Server("Panel_Checklists")
-   Home_Delivery_Server("Panel_Home_Delivery")
+    Main_Shares_Server("Panel_Main_Shares")
+    Species_Assignment_Server("Panel_Species_Assignment")
+    Early_Orders_Server("Panel_Early_Orders")
+    Special_Orders_Server("Panel_Special_Orders")
+    Checklists_Server("Panel_Checklists")
+    Home_Delivery_Server("Panel_Home_Delivery")
+    Errors_Server("Panel_Errors")
   
 }
-
-#Polished
-# secure_server(server)
