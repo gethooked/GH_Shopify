@@ -1,3 +1,5 @@
+#current version 6/3/2022
+
 library(shiny)
 library(shinyjs)
 library(shinydashboard)
@@ -6,7 +8,6 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(DT)
-#library(polished)
 library(parallel)
 library(readxl)
 library(ngram)
