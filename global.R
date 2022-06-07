@@ -66,10 +66,10 @@ Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliverie
       clean_colname(type = "Order_Status")
   
     ### Find Cancellations
-      order_cancelled <- order_status %>%
-        filter(str_detect(order_tags, "1st Order")|orderCreatedAt >= wday_date(-2)) %>% 
-        filter(!is.na(orderCancelledAt)) %>% 
-        select(order_id, orderCancelledAt)
+      # order_cancelled <- order_status %>%
+      #   filter(str_detect(order_tags, "1st Order")|orderCreatedAt >= wday_date(-2)) %>% 
+      #   filter(!is.na(orderCancelledAt)) %>% 
+      #   select(order_id, orderCancelledAt, orderEmail, orderLineItems)
       
       order_sync <- order_status %>% 
         select(order_id, orderStatus, orderCancelledAt, order_tags)
@@ -105,15 +105,15 @@ Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliverie
         filter(match_index == 1) %>% 
         select(-match_index) %>% 
         clean_customer() %>%
-        clean_date() %>% # identifying new members that signed up passed monday cutoff 
+        clean_date() %>% # identifying new members that signed up passed Monday cutoff 
         select(-order_tags) %>% 
         left_join(order_sync) # identify canceled orders
       
       order_details <- order_details_df %>%
         filter(!str_detect(customer_tags, "Test Account")) %>% # remove test accounts
-        filter(is.na(orderCancelledAt) & orderStatus == "fulfilled")
-      
-      
+        filter(is.na(orderCancelledAt) & str_detect(orderStatus,"fulfilled")) %>% 
+        filter(order_id != "CANCELLED")
+
   
   ### Update tags    
       
