@@ -15,7 +15,7 @@ Errors_UI <- function(id) {
           
           br(),
           
-          h3("Missing Orders"),
+          h4("Missing Orders"),
           tags$div(
             "Potential missing order. Order ID in ",
             a("Shopify - Order Sync",
@@ -26,7 +26,7 @@ Errors_UI <- function(id) {
           ),
           br(),
           
-          h3("Check Orders"),
+          h4("Cancelled Orders"),
           tags$div(
             "Time stamp in orderCancelledAt or orderstatus is null in ",
             a("Shopify - Order Sync.",
@@ -35,7 +35,7 @@ Errors_UI <- function(id) {
           
           br(),
           
-          h3("No Customer Match"),
+          h4("No Customer Match"),
           tags$div(
             "No match for customer associated with order in  ",
             a("Shopify Orders.",
@@ -44,7 +44,7 @@ Errors_UI <- function(id) {
           
           br(),
           
-          h3("Double Order Check"),
+          h4("Double Order Check"),
           tags$div(
             "Customers with multiple of the same subsription order in  ",
             a("Shopify Orders.",
@@ -53,14 +53,14 @@ Errors_UI <- function(id) {
           
           br(),
           
-          h3("No Subscription Order"),
+          h4("No Subscription Order"),
           tags$div(
             "Customers placed flashsale order but no subscription order found."
           ),
           
           br(),
           
-          h3("Missing Product Category"),
+          h4("Missing Product Category"),
           tags$div(
             "Product is missing category (Inventory Type or Deadline Type)."
           ),
@@ -79,7 +79,7 @@ Errors_UI <- function(id) {
         mainPanel(
           tabsetPanel(
             tabPanel("Missing Orders",  dataTableOutput(ns("missing_orders"))),
-            tabPanel("Check Orders", dataTableOutput(ns("check_orders"))),
+            tabPanel("Cancelled Orders", dataTableOutput(ns("cancelled_orders"))),
             tabPanel("No Customer Match", dataTableOutput(ns("no_customer_match"))),
             tabPanel("Double Order Check", dataTableOutput(ns("double_order_check"))),
             tabPanel("No Subscription Order", dataTableOutput(ns("error_no_sub"))),
@@ -103,8 +103,8 @@ Errors_Server <- function(id) {
         filter(is.na(index))
       
       # * Orders placed this week that were either canceled or not fulfilled
-      check_orders <- active_week_orders %>%
-        filter(!is.na(orderCancelledAt)| orderStatus != "fulfilled")
+      cancelled_orders <- order_details_df %>%
+        filter((!is.na(orderCancelledAt) & orderStatus != "fulfilled") | order_id == "CANCELLED")
       
       
       # * Missing Details Match
@@ -136,8 +136,8 @@ Errors_Server <- function(id) {
       })
       
       # Tab: Check Orders ----------------------------------------------
-      output$check_orders <- renderDataTable({
-        datatable(check_orders, options = datatable_options)
+      output$cancelled_orders <- renderDataTable({
+        datatable(cancelled_orders, options = datatable_options)
       })
       
       # Tab: No Customer Match ----------------------------------------------
