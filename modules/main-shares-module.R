@@ -130,18 +130,32 @@ Main_Shares_Server <- function(id) {
                            is_1st_species = FALSE) 
       })
       
+ #      subs_all <- reactive({
+ # #       temp <- weekly_species4() %>%
+ #                temp2<-weekly_species11 %>% 
+ #          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
+ #          mutate(species_choice = ifelse(!is.na(share_upgrade), 
+ #                                         as.character(share_upgrade), ""))%>%
+ #          mutate(species = if_else(is.na(species_choice) | species_choice == "", 
+ #                                   species, species_choice)) %>% 
+ #          mutate(species = trimws(species)) %>% 
+ #          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
+ #        
+ #      })
       
       subs_all <- reactive({
         temp <- weekly_species4() %>%
-  #      temp2<-weekly_species11 %>% 
-          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
-          mutate(species_choice = ifelse(!is.na(share_upgrade), 
-                                         as.character(share_upgrade), ""))%>%
-          mutate(species = if_else(is.na(species_choice) | species_choice == "", 
-                                   species, species_choice)) %>% 
-          mutate(species = trimws(species)) %>% 
+   #     temp2<-weekly_species11 %>%
+          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>%
+          mutate(share_upgrade = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_upgrade)) %>%
+          mutate(share_type2 = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_type2)) %>% 
+          mutate(species_choice = ifelse(!is.na(share_upgrade),
+                                         as.character(share_upgrade), "")) %>%
+          mutate(species = if_else(is.na(species_choice) | species_choice == "",
+                                   species, species_choice)) %>%
+          mutate(species = trimws(species)) %>%
           mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
-        
+
       })
       
       # Tab: All Main Shares ----------------------------------------------------------------

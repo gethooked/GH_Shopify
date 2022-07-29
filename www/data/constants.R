@@ -48,7 +48,7 @@ delivery_day_levels_abb_named <- delivery_day_levels_abb %>%
 #shiny_category with ED/SO, VO/FS/IF/ID
 shiny_category_df <- data.frame(deadline_type = c("Early Deadline" , "Early Deadline" ,"Special Order", "Special Order", "Special Order"),
                                 inventory_type = c("Vendor Order", "Fresh Seafood", "Fresh Seafood", "Inventory Frozen", "Inventory Dry"),
-                                shiny_category = c("ED/VO", "ED/FS","SO/FS", "SO/ID", "SO/IF"))
+                                shiny_category = c("ED/VO", "ED/FS","SO/FS", "SO/IF", "SO/ID"))
 
 ED_category <- c("FS", "VO")
 

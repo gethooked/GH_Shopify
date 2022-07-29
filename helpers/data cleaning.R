@@ -15,6 +15,7 @@ new_member_cutoff <- function(df) {
 }
 
 
+
 # App(s): Main Shares, Species Assignment, Home Delivery
 clean_colname <- function(df, type) {
   
@@ -170,6 +171,7 @@ clean_subscription <- function(df) {
     mutate(share_size = ifelse(share_size == "XL", "ExtraLarge", share_size)) %>%
     mutate(delivery_notes = homedelivery_instructions) %>% 
     filter(str_detect(order_id, "#")) %>% 
+    mutate(share_type1 = ifelse(!is.na(share_type1), share_type1, "")) %>% 
     
     #select necessary columns
     select(
@@ -194,12 +196,30 @@ clean_subscription <- function(df) {
       delivery_notes,
       customer_tags,
       partner_email,
-      price
+      price,
+      share_type1
     )
     
 }
 
-# Clean up store orders and retrieve unmatched emails ---------------------------------------------
+# Convert shiny categories ---------------------------------------------
+shiny_category <- function(df) {
+  
+  inventory_rep = c("Vendor Order" = "VO",
+                    "Fresh Seafood" = "FS",
+                    "Inventory Frozen" = "IF", 
+                    "Inventory Dry" = "ID")
+  
+  deadline_rep = c("Early Deadline" = "ED",
+                   "Special Order" = "SO")
+  
+  df %>% 
+    mutate(deadline_abb = str_replace_all(deadline_type, deadline_rep)) %>% 
+    mutate(inventory_abb = str_replace_all(inventory_type, inventory_rep)) %>% 
+    mutate(shiny_category = ifelse(str_detect("SO|ED", deadline_abb), paste0(deadline_abb, "/", inventory_abb), NA))
+
+}
+
 # App(s): Main Shares, Species Assignment, Early Deadline Orders
 clean_weight_unit <- function(df) {
   
@@ -223,6 +243,24 @@ shiny_category_full <- function(x) {
     str_detect(x, "IF") ~ "Frozen Products", 
     str_detect(x, "ID") ~ "Dry Products",
     TRUE                ~ NA_character_)
+}
+
+shiny_category_short <- function(x, y) {
+  
+  inventory_rep = c("Vendor Order" = "VO",
+                    "Fresh Seafood" = "FS",
+                    "Inventory Frozen" = "IF", 
+                    "Inventory Dry" = "ID")
+  
+  deadline_rep = c("Early Deadline" = "ED",
+                    "Special Order" = "SO")
+  
+  # case_when(
+  #   str_detect(x, "Vendor Order") ~ "VO",
+  #   str_detect(x, "Fresh Seafood") ~ "FS",
+  #   str_detect(x, "Inventory Frozen") ~ "IF", 
+  #   str_detect(x, "Inventory Dry") ~ "ID",
+  #   TRUE                ~ NA_character_)
 }
 
 

@@ -1,4 +1,4 @@
-#current version 6/3/2022
+#current version 6/6/2022
 
 library(shiny)
 library(shinyjs)
@@ -123,6 +123,7 @@ Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliverie
   shopify_subscription <- order_details %>%
     
     filter(inventory_type == "Subscription Main Share") %>%
+    mutate(share_type1 = NA) %>% # used for joining with extra main share
     clean_subscription() %>%
   #  left_join(order_cancelled) 
     new_member_cutoff() # new members
@@ -156,7 +157,8 @@ Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliverie
     mutate(route_notation = ifelse(packing_method == "Bag", "yes", ""),
            share_class = checklist_notation) %>% ## Route notation for checklists if order is "dry goods"
     mutate(share_type = product_name) %>%
-    left_join(shiny_category_df) %>% ## Shiny categorys to sort deadlines, fresh & inventoried products 
+#    left_join(shiny_category_df) %>% ## Shiny categorys to sort deadlines, fresh & inventoried products 
+    shiny_category() %>%   
     mutate_at(vars(quantity, size), ~as.numeric(.))
   
   
@@ -244,19 +246,35 @@ sites_list <- split(sites, sites_df $delivery_day_abb)
 
 
 ## Add extra catch of the day
-extra_share<-all_shopify_orders %>% 
-  filter(inventory_type == "Extra Main Share") %>% 
-  mutate(product_name = str_extract(variant_name, "Small|Medium|Large|XL")) %>% 
-  mutate(order_tag = "extra share") %>%
-#  uncount(as.integer(quantity), .remove = FALSE, .id = "id") %>%  
-  clean_subscription() %>% 
-  group_by(customer_email) %>% 
-  mutate(index = row_number()) %>% 
-  ungroup() %>% 
-#  mutate(customer_email = paste0(customer_email, "(+1)"),
-#         customer_name = paste0(customer_name, "(+1)")) %>% 
-  mutate(share_type1 = paste0("Extra Share", index)) %>% 
+
+## Current --------------
+# extra_share<-all_shopify_orders %>% 
+#   filter(inventory_type == "Extra Main Share") %>% 
+#   mutate(product_name = str_extract(variant_name, "Small|Medium|Large|XL")) %>% 
+#   mutate(order_tag = "extra share") %>%
+#   #  uncount(as.integer(quantity), .remove = FALSE, .id = "id") %>%  
+#   clean_subscription() %>% 
+#   group_by(customer_email) %>% 
+#   mutate(index = row_number()) %>% 
+#   ungroup() %>% 
+#   #  mutate(customer_email = paste0(customer_email, "(+1)"),
+#   #         customer_name = paste0(customer_name, "(+1)")) %>% 
+#   mutate(share_type1 = paste0("Extra Share", index)) %>% 
+#   select(-index, -id, -price)
+
+## Trial ----------------
+extra_share<-all_shopify_orders %>%
+  filter(inventory_type == "Extra Main Share") %>%
+  separate(variant_name, c("share_type1", "extra_share_size"), "/") %>%
+  mutate(share_type1 = ifelse(str_detect(share_type1, "Extra Catch"), "Extra Catch", "Extra Share")) %>% 
+  mutate(product_name = str_extract(extra_share_size, "Small|Medium|Large|XL")) %>%
+  clean_subscription() %>%
+  group_by(customer_email) %>%
+  mutate(index = row_number()) %>%
+  ungroup() %>%
+  mutate(share_type1 = paste(trimws(share_type1), index)) %>%
   select(-index, -id, -price)
+
 
 ## Core dataset for Main Shares app
 weekly_species11 <- rbind(subscription, extra_share) %>% 
@@ -490,7 +508,7 @@ title_SO <- title_with_date("Special Orders")
 
 # * Tab: Fresh Product by Day -----------------------------------------------------------------------
 fresh_product_by_day <- orders_ED_SO %>% 
-  filter(inventory_type == "Fresh Seafood") %>%
+  filter(str_detect(inventory_type, "Fresh Seafood")) %>%
   mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels)) %>%
   group_by(delivery_day, share_type, size_unit) %>% 
   summarise(total = sum(size)) %>% 
@@ -507,7 +525,7 @@ fresh_product_all <- fresh_product_by_day %>%
   
 # * Tab: TUE/WED/THU/LA orders ----------------------------------------------------------------------
 all_preorders_SO <- orders_ED_SO %>%
-  filter(deadline_type == "Special Order") %>%
+  filter(str_detect(deadline_type, "Special Order")) %>%
   count(delivery_day, share_type, share_size) %>%
   split(.$delivery_day)
 

@@ -297,18 +297,22 @@ Species_Assignment_Server <- function(id) {
       
       subs_all <- reactive({
         temp <- weekly_species6() %>%
-          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
-          mutate(species_choice = ifelse(!is.na(share_upgrade), 
-                                         as.character(share_upgrade), ""))%>%
-          mutate(species = if_else(is.na(species_choice) | species_choice == "", species, species_choice)) %>% 
-          mutate(species = trimws(species))%>% 
-          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
+          # left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
+          # mutate(species_choice = ifelse(!is.na(share_upgrade), 
+          #                                as.character(share_upgrade), ""))%>%
+          # mutate(species = if_else(is.na(species_choice) | species_choice == "", species, species_choice)) %>% 
+          # mutate(species = trimws(species))%>% 
+          # mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
         
-          # left_join(flashsales_Main_shares %>% filter(species_choice != ""), by = "customer_email") %>%
-          # mutate(species_choice = ifelse(!is.na(share_upgrade) & !(str_detect(share_upgrade, "Stick")), 
-          #                                as.character(share_upgrade), "")) %>% 
-          # mutate(species = ifelse(species_choice == "", species, str_remove(species_choice, "(?=\\-).+")),
-          #        species = trimws(species)) 
+          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>%
+          mutate(share_upgrade = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_upgrade)) %>%
+          mutate(share_type2 = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_type2)) %>% 
+          mutate(species_choice = ifelse(!is.na(share_upgrade),
+                                         as.character(share_upgrade), "")) %>%
+          mutate(species = if_else(is.na(species_choice) | species_choice == "",
+                                   species, species_choice)) %>%
+          mutate(species = trimws(species)) %>%
+          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
         
         
       })
