@@ -565,7 +565,8 @@ dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
          spacer_2, pickup_site_label, date, instructions_1, instructions_2, source, 
          order, price, delivery_day, PSL)
 
-route_labels <- dry_goods %>% 
+route_labels <- dry_goods %>%
+  filter(!str_detect(source, "Cooler")) %>% 
   split(.$delivery_day)
 
 # 5. Unlink temporary files =========================================================================

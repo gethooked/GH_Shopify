@@ -173,11 +173,11 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
                    "instructions_1",
                    "instructions_2",
                    "source",
-                   "schedule",
+                   "delivery_day",
                    "name_form",
                    "order",
                    "price",
-                   "delivery_day")) %>%
+                   "schedule")) %>%
     mutate(Timestamp = as.character(Timestamp),
            customer_name = as.character(customer_name)) %>%
     ## New member labels are sometimes pasted into Flashsalse spreadsheets for printing purposes.
@@ -270,12 +270,12 @@ rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
                    "date",
                    "instructions_1",
                    "instructions_2",
-                   "schedule",
                    "source",
+                   "delivery_day",
                    "name_form",
                    "order",
                    "price",
-                   "delivery_day"))
+                   "schedule"))
   }
   
   lapply(delivery_day_levels, function(deliv_day) {
