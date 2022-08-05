@@ -5,9 +5,9 @@ account: gethookedseafood
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5480132
-bundleId: 6094004
+bundleId: 6172172
 url: https://gethookedseafood.shinyapps.io/shopify_app/
-when: 1657698499.28098
-lastSyncTime: 1657698499.28098
+when: 1659715084.20387
+lastSyncTime: 1659715084.20387
 asMultiple: FALSE
 asStatic: FALSE

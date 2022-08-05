@@ -69,8 +69,8 @@ for(i in seq_along(df_list)) {
       kableExtra::row_spec(which(!df$HLine), extra_latex_after = "\\cmidrule{2-4}", hline_after = FALSE) %>%
       kableExtra::row_spec(which(df$HLine)[-sum(df$HLine)],  extra_latex_after = "\\cmidrule{1-4}", hline_after = FALSE) %>%
       kableExtra::column_spec(column = 1, width = "1.6in") %>%
-      kableExtra::column_spec(column = 2, width = "2.2in") %>%
-      kableExtra::column_spec(column = 3, width = "0.9in") %>%
+      kableExtra::column_spec(column = 2, width = "2in") %>%
+      kableExtra::column_spec(column = 3, width = "1in") %>%
       kableExtra::column_spec(column = 4, width = "0.86in")
   })
   

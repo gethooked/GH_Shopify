@@ -155,7 +155,8 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
     mutate(customer_name = as.character(customer_name)) %>% 
     mutate(home_delivery_name = as.character(home_delivery_name)) %>% 
     mutate(customer_name = ifelse(customer_name == "Home Delivery", home_delivery_name, customer_name)) %>% 
-    select(pickup_site_label, customer_name, species, share_size, type)
+    select(pickup_site_label, customer_name, species, share_size, type) %>% 
+    mutate(source = "Cooler")
   
 #  flashsale_check <- Active_Deliveries[[paste0("Flashsales_", "THU")]] %>%
   flashsale_check <- Active_Deliveries[[paste0("Flashsales_", abb)]] %>%
@@ -171,8 +172,8 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
                    "date",
                    "instructions_1",
                    "instructions_2",
-                   "schedule",
                    "source",
+                   "schedule",
                    "name_form",
                    "order",
                    "price",
@@ -184,7 +185,7 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
     filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
     filter(!str_detect(pickup_site_label, "- [0-9]")) %>%
     mutate(type = "Add-on") %>%
-    select(pickup_site_label, customer_name, species = share_type, share_size, type)
+    select(pickup_site_label, customer_name, species = share_type, share_size, type, source)
   
   deliveries_complete <- rbind(subscription_check, flashsale_check)%>%
     mutate(pickup_site_label = trimws(pickup_site_label))
@@ -198,8 +199,10 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
   
   if(nrow(deliveries_complete) > 0) {
     
-    Kitchen_list <- deliveries_complete %>%
+    Kitchen_list_all <- deliveries_complete %>%
+#      Kitchen_list <- deliveries_complete %>%  
       filter(pickup_site_label != "") %>%
+      select(-source) %>% 
       mutate(customer_name = str_to_title(customer_name),
              type = str_to_title(type))%>%
       `colnames<-`(c("Pickup Site", "Name", "Item", "Size", "Type")) %>%
@@ -208,7 +211,20 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
       lapply(function(df) {df %>% mutate(`Pickup Site` = " ") %>% 
           rename(" " = "Pickup Site")})
     
-    Site_list <- Kitchen_list[which(!(str_detect(names(Kitchen_list), "Home Delivery")))]
+    Site_list <- Kitchen_list_all[which(!(str_detect(names(Kitchen_list_all), "Home Delivery")))]
+    
+    Kitchen_list <- deliveries_complete %>%
+      #      Kitchen_list <- deliveries_complete %>%  
+      filter(pickup_site_label != "") %>%
+      filter(!str_detect(source, "Bag")) %>% 
+      select(-source) %>% 
+      mutate(customer_name = str_to_title(customer_name),
+             type = str_to_title(type))%>%
+      `colnames<-`(c("Pickup Site", "Name", "Item", "Size", "Type")) %>%
+      arrange(`Pickup Site`, Name) %>%
+      split(f = .$`Pickup Site`)%>%
+      lapply(function(df) {df %>% mutate(`Pickup Site` = " ") %>% 
+          rename(" " = "Pickup Site")})
 
     if(length(Kitchen_list) == 0) {
       Kitchen_list <- list(NULL) %>% `names<-`("No Data")

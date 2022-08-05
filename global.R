@@ -1,4 +1,4 @@
-#current version 6/6/2022
+#current version 8/5/2022
 
 library(shiny)
 library(shinyjs)
@@ -465,7 +465,8 @@ orders_ED_SO <- shopify_orders %>%
   ## data cleaning
   mutate(share_type = replace_na(product_name, "") %>% trimws) %>% 
   mutate(share_size = ifelse(variant_name == "", 1, variant_name) %>% trimws) %>% 
-  mutate(source = "Store")
+#  mutate(source = "Store")
+  mutate(source = packing_method)
 
 
 
