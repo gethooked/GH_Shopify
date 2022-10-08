@@ -22,7 +22,8 @@ Errors_UI <- function(id) {
               href = "https://docs.google.com/spreadsheets/d/1QeWzX5iD70oQfWuLC1GI1xcIBwz78s2Q1Oi8sieWW98/edit#gid=0"),
             "but missing from ",
             a("Shopify Orders.",
-              href = "https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=16853773")
+              href = "https://docs.google.com/spreadsheets/d/1SIOuuBBOXQ9-oCWbN-Hv9bHirxZH9S1RrJSGiaphK1Y/edit#gid=16853773"),
+            "OR in Shopify, but missing from Google Sheets.",
           ),
           br(),
           
@@ -98,9 +99,21 @@ Errors_Server <- function(id) {
     function(input, output, session) {
       
       # * Find missing orders (orders that are in Shopify but not in Shopify orders)
+      
+      sequence <- order_sync %>% 
+        mutate(id_number = as.numeric(str_extract(order_id, "[0-9]+")))
+      
+      seq2 <- min(sequence$id_number):max(sequence$id_number)
+      
+      missing_id <- c(0, seq2[!seq2 %in% sequence$id_number])
+      df_missing <- data.frame (order_id  = missing_id,
+                                orderLineItems = "Check Shopify")
+      
       missing_orders <- active_week_orders %>% 
         left_join(orders_df %>% select(order_id, index)) %>% 
-        filter(is.na(index))
+        filter(is.na(index)) %>%
+        mutate(order_id = as.numeric(str_extract(order_id, "[0-9]+"))) %>% 
+        full_join(df_missing)
       
       # * Orders placed this week that were either canceled or not fulfilled
       cancelled_orders <- order_details_df %>%
@@ -132,32 +145,36 @@ Errors_Server <- function(id) {
       
       # Tab: Missing Orders ---------------------------------------------
       output$missing_orders <- renderDataTable({
-        datatable(missing_orders, options = datatable_options)
+#        datatable(missing_orders, options = datatable_options),
+        datatable_export(missing_orders, title = title_with_date("Missing Orders"))
       })
+      
       
       # Tab: Check Orders ----------------------------------------------
       output$cancelled_orders <- renderDataTable({
-        datatable(cancelled_orders, options = datatable_options)
+        #datatable(cancelled_orders, options = datatable_options)
+        datatable_export(cancelled_orders, title = title_with_date("Cancelled Orders"))
       })
+
       
       # Tab: No Customer Match ----------------------------------------------
       output$no_customer_match <- renderDataTable({
-        datatable(no_customer_match, options = datatable_options)
+        datatable_export(no_customer_match, title = title_with_date("No Customer Match"))
       })
       
       # Tab: Double Order Check ----------------------------------------------
       output$double_order_check <- renderDataTable({
-        datatable(double_order_check, options = datatable_options)
+        datatable_export(double_order_check, title = title_with_date("Double Order Check"))
       })
       
       # Tab: No Subscription Order ----------------------------------------------
       output$error_no_sub <- renderDataTable({
-        datatable(error_no_sub, options = datatable_options)
+        datatable_export(error_no_sub, title = title_with_date("No Subscription Order"))
       })
       
       # Tab: Product Missing Category ----------------------------------------------
       output$error_missing_category <- renderDataTable({
-        datatable(error_missing_category, options = datatable_options)
+        datatable_export(error_missing_category, title = title_with_date("Product Missing Category"))
       })
       
       
