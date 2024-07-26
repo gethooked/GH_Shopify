@@ -21,16 +21,16 @@ header <- dashboardHeader(
         "sign_out", "Sign Out",
         icon = icon("sign-out-alt"),
         class = "pull-right"
-        ),
+      ),
       
       actionButton(
         "restart", "Restart",
         icon = icon("power-off"),
         class = "pull-right"
-        )
       )
     )
   )
+)
 
 sidebar <- dashboardSidebar(
   dashboardSidebar(
@@ -44,24 +44,24 @@ sidebar <- dashboardSidebar(
         menuSubItem("Main Shares",
                     icon = icon("angle-right"),
                     tabName = "Tab_Main_Shares"
-                    ),
-
+        ),
+        
         menuSubItem("Species Assignment",
                     icon = icon("angle-right"),
                     tabName = "Tab_Species_Assignment"),
-
+        
         menuSubItem("Early Deadline Orders",
-                     icon = icon("angle-right"),
-                     tabName = "Tab_Early_Orders"),
-
+                    icon = icon("angle-right"),
+                    tabName = "Tab_Early_Orders"),
+        
         menuSubItem("Special Orders",
                     icon = icon("angle-right"),
                     tabName = "Tab_Special_Orders"),
-
+        
         menuSubItem("Home Delivery",
                     icon = icon("angle-right"),
                     tabName = "Tab_Home_Delivery"),
-
+        
         menuSubItem("Checklists",
                     icon = icon("angle-right"),
                     tab = "Tab_Checklists"),
@@ -69,7 +69,7 @@ sidebar <- dashboardSidebar(
         menuSubItem("Error Check",
                     icon = icon("angle-right"),
                     tab = "Tab_Errors")
-        )
+      )
       # ,
       # 
       # menuItem(
@@ -99,13 +99,13 @@ body <- dashboardBody(
   useShinyjs(),
   
   tabItems(
-     tabItem(tabName = "Tab_Main_Shares", Main_Shares_UI("Panel_Main_Shares")),
-     tabItem(tabName = "Tab_Species_Assignment", Species_Assignment_UI("Panel_Species_Assignment")),
-     tabItem(tabName = "Tab_Early_Orders", Early_Orders_UI("Panel_Early_Orders")),
-     tabItem(tabName = "Tab_Special_Orders", Special_Orders_UI("Panel_Special_Orders")),
-     tabItem(tabName = "Tab_Checklists", Checklists_UI("Panel_Checklists")),
-     tabItem(tabName = "Tab_Home_Delivery", Home_Delivery_UI("Panel_Home_Delivery")),
-     tabItem(tabName = "Tab_Errors", Errors_UI("Panel_Errors"))
+    tabItem(tabName = "Tab_Main_Shares", Main_Shares_UI("Panel_Main_Shares")),
+    tabItem(tabName = "Tab_Species_Assignment", Species_Assignment_UI("Panel_Species_Assignment")),
+    tabItem(tabName = "Tab_Early_Orders", Early_Orders_UI("Panel_Early_Orders")),
+    tabItem(tabName = "Tab_Special_Orders", Special_Orders_UI("Panel_Special_Orders")),
+    tabItem(tabName = "Tab_Checklists", Checklists_UI("Panel_Checklists")),
+    tabItem(tabName = "Tab_Home_Delivery", Home_Delivery_UI("Panel_Home_Delivery")),
+    tabItem(tabName = "Tab_Errors", Errors_UI("Panel_Errors"))
   )
 )
 

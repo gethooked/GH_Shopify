@@ -1,4 +1,4 @@
-#current version 10/7/2022
+#current version 05/26/2023
 
 library(shiny)
 library(shinyjs)
@@ -37,136 +37,121 @@ Product_KEYS_names      <- c("Share_Size_Variant", "Species_Options")
 Active_Deliveries_names <- c(paste0("Labels_",     delivery_day_levels_abb), 
                              paste0("Flashsales_", delivery_day_levels_abb))
 
-
 ## Read data
 Product_KEYS      <- read_gs_para(ss = ss["product_keys"], Product_KEYS_id, Product_KEYS_names) 
-Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliveries_id, Active_Deliveries_names)
+Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], Active_Deliveries_id, Active_Deliveries_names) %>% 
+  clean_colnames_AD()
 
 ### Information from shopify --------------------------------------------------------------------
 
-  ## Customer Information (Synced w/Shopify) 
-    Customer_Raw <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCUG04TybjFkJSQnLK09R64Hi51FAylgoEVfAk5VEujZts1SSCVNwu_ij8LUH_2V3s6rcvxc8tY/pub?gid=1076032319&single=true&output=csv")
-  
-  ## Weekly Orders 
-   Shopify_Orders <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeQbMhljx46LSRodW91lORPYFa9y4CIAS2rvRf4hk79JMebqRlP7DaNZCGeOj2MhNhMkVxREjhal5/pub?gid=1727009410&single=true&output=csv")
-  
-  ## Order status (Synced w/Shopify) 
-    Order_status <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSJpMHpsMPp0QBWzi2x5Jnk5g8RY0sSkFftP35yTLldPAUot2TT5V4M5YyH-t66J5QWdsD8me4LVkvL/pub?gid=0&single=true&output=csv")
+## Customer Information (Synced w/Shopify) 
+Customer_Raw <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSAnOCUG04TybjFkJSQnLK09R64Hi51FAylgoEVfAk5VEujZts1SSCVNwu_ij8LUH_2V3s6rcvxc8tY/pub?gid=1076032319&single=true&output=csv")
+
+## Weekly Orders 
+Shopify_Orders <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSeeQbMhljx46LSRodW91lORPYFa9y4CIAS2rvRf4hk79JMebqRlP7DaNZCGeOj2MhNhMkVxREjhal5/pub?gid=1727009410&single=true&output=csv")
+
+## Order status (Synced w/Shopify) 
+Order_status <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSJpMHpsMPp0QBWzi2x5Jnk5g8RY0sSkFftP35yTLldPAUot2TT5V4M5YyH-t66J5QWdsD8me4LVkvL/pub?gid=0&single=true&output=csv")
 
 
 # 4. Data Cleaning ==============================================================================
 
-  ## * customer details  --------------------------------------------------------------------------
-  
-  shopify_customers <- Customer_Raw %>% 
-    clean_colname(type = "Customer")
-  
-  ## * Order Status  ------------------------------------------------------------------------------
-    order_status <- Order_status %>% 
-      clean_colname(type = "Order_Status")
-  
-    ### Find Cancellations
-      # order_cancelled <- order_status %>%
-      #   filter(str_detect(order_tags, "1st Order")|orderCreatedAt >= wday_date(-2)) %>% 
-      #   filter(!is.na(orderCancelledAt)) %>% 
-      #   select(order_id, orderCancelledAt, orderEmail, orderLineItems)
-      
-      order_sync <- order_status %>% 
-        select(order_id, orderStatus, orderCancelledAt, order_tags)
-      
-   ### Orders placed this week
-      active_week_orders <- order_status %>% 
-        filter(orderCreatedAt >= week_start)
-  
-  ## * Orders  ------------------------------------------------------------------------------------
-  
-  orders_df <- Shopify_Orders %>% 
-    clean_colname(type = "Orders") %>% 
-    mutate(index = row_number())
-  
-    ## * Customer Details to orders this week -----------------------------------------------------
-      id_match <- orders_df %>% 
-        select(-customer_email, -customer_name) %>% 
-        left_join(shopify_customers %>% mutate(match = "customer_id"))
-      
-      email_match <- orders_df %>%
-        select(-customer_id, -customer_name) %>% 
-        left_join(shopify_customers %>% mutate(match = "customer_email"))
-      
-      name_match <- orders_df %>%
-        select(-customer_id, -customer_email) %>% 
-        left_join(shopify_customers %>% mutate(match = "customer_name"))
-      
-      order_details_df <- rbind(id_match, email_match, name_match) %>% 
-        filter(!is.na(match)) %>% 
-        group_by(index) %>% 
-        mutate(match_index = row_number()) %>% 
-        ungroup() %>% 
-        filter(match_index == 1) %>% 
-        select(-match_index) %>% 
-        clean_customer() %>%
-        clean_date() %>% # identifying new members that signed up passed Monday cutoff 
-        select(-order_tags) %>% 
-        left_join(order_sync) # identify canceled orders
-      
-      order_details <- order_details_df %>%
-        filter(!str_detect(customer_tags, "Test Account")) %>% # remove test accounts
-        filter(is.na(orderCancelledAt) & str_detect(orderStatus,"fulfilled")) %>% 
-        filter(order_id != "CANCELLED")
+## * customer details  --------------------------------------------------------------------------
+shopify_customers <- Customer_Raw %>% 
+  clean_colnames(type = "Customer")
 
-  
-  ### Update tags    
-      
-      
-  ## * subscriptions for Active Members  ----------------------------------------------------------
-  
-  shopify_subscription <- order_details %>%
-    
-    filter(inventory_type == "Subscription Main Share") %>%
-    mutate(share_type1 = NA) %>% # used for joining with extra main share
-    clean_subscription() %>%
-  #  left_join(order_cancelled) 
-    new_member_cutoff() # new members
-    
-  
-    ## Active subscriptions for the week - used in mainshare & species assignment  
-    subscription <- shopify_subscription  %>% 
-     # select(-delivery_week) %>%
-       mutate(share_type1 = paste("Main Share", id)) %>% 
-       select(-delivery_week, -id, -price)
-    
-    # * New subscriptions for next week - to be exported and fulfilled the following week 
-    subscription_nextweek <- shopify_subscription %>% 
-      filter(delivery_week == "Next Week") %>% 
-      mutate(error_type = "Missed Cutoff")
-    
-    # * check for multiple of the same subscription order
-    double_order_check <- shopify_subscription %>% 
-      group_by(customer_email, customer_name, share_size) %>% 
-      tally() %>% 
-      filter( n > 1)
-  
-  
-    
-  ## * Incoming Flashsale Orders -------------------------------------------------------------------
+## * Order Status  ------------------------------------------------------------------------------
+order_status <- Order_status %>% 
+  clean_colnames(type = "Order_Status")
 
-  all_shopify_orders  <- order_details %>%
-    filter(inventory_type != "Subscription Main Share") %>%
-  #  filter(str_detect(order_id, "#")) %>%
-    new_member_cutoff() %>%
-    mutate(route_notation = ifelse(packing_method == "Bag", "yes", ""),
-           share_class = checklist_notation) %>% ## Route notation for checklists if order is "dry goods"
-    mutate(share_type = product_name) %>%
-#    left_join(shiny_category_df) %>% ## Shiny categorys to sort deadlines, fresh & inventoried products 
-    shiny_category() %>%   
-    mutate_at(vars(quantity, size), ~as.numeric(.))
+order_sync <- order_status %>% 
+  select(order_id, orderStatus, orderCancelledAt, order_tags)
+
+### Orders placed this week
+active_week_orders <- order_status %>% 
+  filter(orderCreatedAt >= week_start)
+
+## * Orders  -------------------------------------------------------------------------------------
+orders_df <- Shopify_Orders %>% 
+  clean_colnames(type = "Orders") %>% 
+  mutate(index = row_number())
+
+## * Customer Details to orders this week -----------------------------------------------------
+id_match <- orders_df %>% 
+  select(-customer_email, -customer_name) %>% 
+  left_join(shopify_customers %>% mutate(match = "customer_id"))
+
+email_match <- orders_df %>%
+  select(-customer_id, -customer_name) %>% 
+  left_join(shopify_customers %>% mutate(match = "customer_email"))
+
+name_match <- orders_df %>%
+  select(-customer_id, -customer_email) %>% 
+  left_join(shopify_customers %>% mutate(match = "customer_name"))
+
+order_details_df <- rbind(id_match, email_match, name_match) %>% 
+  filter(!is.na(match)) %>% 
+  group_by(index) %>% 
+  mutate(match_index = row_number()) %>% 
+  ungroup() %>% 
+  filter(match_index == 1) %>% 
+  select(-match_index) %>% 
+  clean_customer() %>%
+  clean_date() %>% # identifying new members that signed up passed Monday cutoff 
+  select(-order_tags) %>% 
+  left_join(order_sync) # identify canceled orders
+
+order_details <- order_details_df %>%
+  filter(!str_detect(customer_tags, "Test Account")) %>% # remove test accounts
+  filter(is.na(orderCancelledAt) & str_detect(orderStatus,"fulfilled")) %>% 
+  filter(order_id != "CANCELLED")
+
+## * subscriptions for Active Members  ----------------------------------------------------------
+
+shopify_subscription <- order_details %>%
   
-  
-  shopify_orders <- all_shopify_orders %>% 
-  #  filter(delivery_week == "") %>% 
-    select(-delivery_week)
-  
-  
+  filter(inventory_type == "Subscription Main Share") %>%
+  mutate(share_type1 = NA) %>% # used for joining with extra main share
+  clean_subscription() %>%
+  mutate(share_size = as.character(share_size))  %>%   
+  new_member_cutoff() # new members
+
+
+## Active subscriptions for the week - used in mainshare & species assignment  
+subscription <- shopify_subscription  %>% 
+  # select(-delivery_week) %>%
+  mutate(share_type1 = paste("Main Share", id)) %>% 
+  select(-delivery_week, -id, -price)
+
+# * New subscriptions for next week - to be exported and fulfilled the following week 
+subscription_nextweek <- shopify_subscription %>% 
+  filter(delivery_week == "Next Week") %>% 
+  mutate(error_type = "Missed Cutoff")
+
+# * check for multiple of the same subscription order
+double_order_check <- shopify_subscription %>% 
+  group_by(customer_email, customer_name, share_size) %>% 
+  tally() %>% 
+  filter( n > 1)
+
+
+
+## * Incoming Flashsale Orders -------------------------------------------------------------------
+
+all_shopify_orders  <- order_details %>%
+  filter(inventory_type != "Subscription Main Share") %>%
+  new_member_cutoff() %>%
+  mutate(route_notation = ifelse(packing_method == "Bag", "yes", ""),
+         share_class = checklist_notation) %>% ## Route notation for checklists if order is "dry goods"
+  mutate(share_type = product_name) %>%
+  shiny_category() %>%   
+  mutate_at(vars(quantity, size), ~as.numeric(.))
+
+
+shopify_orders <- all_shopify_orders %>% 
+  select(-delivery_week)
+
+
 
 # 4.1 Main Shares & Species Assignment =============================================================
 
@@ -185,7 +170,8 @@ fillet_options <- Product_KEYS$Species_Options %>%
 
 share_size_list <- rbind(share_size_variant_list, fillet_options) %>% 
   select(species_name = type, share_size, label_weight) %>% 
-  mutate(share_size_label = paste0(as.character(share_size), " ", "(", as.character(label_weight), ")"))
+  mutate(share_size_label = paste0(as.character(share_size), " ", "(", as.character(label_weight), ")")) %>% 
+  unique()
 
 fillet_size_list <- share_size_list %>% 
   filter(species_name == "Fillet") %>% 
@@ -201,7 +187,8 @@ share_size_variant <- Product_KEYS$Share_Size_Variant %>%
   mutate(type_singular = singularize(type)) %>%
   mutate(share_size_estimate = ifelse(is.na(weight), pieces, weight + 0.02))%>%
   select(type, type_singular, size, share_size_estimate)%>%
-  rename("share_size" = "size")
+  rename("share_size" = "size") %>% 
+  unique()
 
 ## Used in Main_Shares_Server and Species_Assignment_Server
 type_list <- unique(c(share_size_variant$type,
@@ -239,30 +226,15 @@ sites_df <- order_details %>%
   distinct(pickup_site, .keep_all = TRUE)
 
 sites <- sites_df$pickup_site 
-  
+
 
 ### Split sites into a list by delivery day
 sites_list <- split(sites, sites_df $delivery_day_abb) 
 
 
+
 ## Add extra catch of the day
 
-## Current --------------
-# extra_share<-all_shopify_orders %>% 
-#   filter(inventory_type == "Extra Main Share") %>% 
-#   mutate(product_name = str_extract(variant_name, "Small|Medium|Large|XL")) %>% 
-#   mutate(order_tag = "extra share") %>%
-#   #  uncount(as.integer(quantity), .remove = FALSE, .id = "id") %>%  
-#   clean_subscription() %>% 
-#   group_by(customer_email) %>% 
-#   mutate(index = row_number()) %>% 
-#   ungroup() %>% 
-#   #  mutate(customer_email = paste0(customer_email, "(+1)"),
-#   #         customer_name = paste0(customer_name, "(+1)")) %>% 
-#   mutate(share_type1 = paste0("Extra Share", index)) %>% 
-#   select(-index, -id, -price)
-
-## Trial ----------------
 extra_share<-all_shopify_orders %>%
   filter(inventory_type == "Extra Main Share") %>%
   separate(variant_name, c("share_type1", "extra_share_size"), "/") %>%
@@ -282,14 +254,15 @@ weekly_species11 <- rbind(subscription, extra_share) %>%
   arrange(desc(order_id)) %>% 
   group_by(customer_email, share_size, share_type1) %>% 
   filter(row_number() == 1) %>% 
-  ungroup() 
-  
+  ungroup() %>% 
+  mutate(share_size = as.character(share_size))
+
 
 # * Tab: Share Pounds by Site ----------------------------------------------------------------------
 fillet_weight_by_site <- weekly_species11 %>% 
   group_by(share_size, delivery_day, pickup_site_label) %>% 
   tally() %>% 
-  arrange(pickup_site_label) %>%
+  arrange(pickup_site_label) %>% 
   left_join(share_size_variant %>% filter(type_singular == "fillet"),
             by = "share_size") %>%
   mutate(total_fillet = n * share_size_estimate)%>%
@@ -299,8 +272,8 @@ fillet_weight_by_site <- weekly_species11 %>%
 
 
 # * Flash Orders -----------------------------------------------------------------------------------
- flashsales_Main_shares <- all_shopify_orders %>%
-
+flashsales_Main_shares <- all_shopify_orders %>%
+  
   ## get main share orders
   filter(inventory_type == "Main Share Upgrade") %>%
   
@@ -312,58 +285,56 @@ fillet_weight_by_site <- weekly_species11 %>%
   group_by(customer_email, share_size) %>% 
   filter(row_number() == 1) %>% 
   ungroup() %>% 
-
+  
   ## remove "pick for me" options
   filter(variant_name != "Pick for me") %>% 
-
-   ## e.g. Fresh Halibut Fillet -> Halibut
+  
+  ## e.g. Fresh Halibut Fillet -> Halibut
   mutate(share_upgrade = str_remove_all(variant_name, "Fresh | Fillet")) %>%
   select(customer_email, share_size2 = share_size, share_upgrade) %>%
   mutate(species_choice = share_upgrade) %>% 
   unique() %>% 
   mutate(share_type2 = "Upgrade")
 
- flash_list <- unique(flashsales_Main_shares$species_choice) %>%
-   setdiff("") %>% c("None")
+flash_list <- unique(flashsales_Main_shares$species_choice) %>%
+  setdiff("") %>% c("None")
 
- flash_fillet <- setdiff(flash_list, c(species_options, "")) %>% tolower
- 
+flash_fillet <- setdiff(flash_list, c(species_options, "")) %>% tolower
 
- # * Button: OP Email List (Partner Email) ----------------------------------------------------------
- 
- partner_email <- order_details %>% 
-   select(customer_email, partner_email) %>% 
-   unique() %>% 
-   filter(!is.na(partner_email))
 
- # * Button: Download New Member Labels -------------------------------------------------------------
- 
- cooler_bag_label <- subscription %>% 
-   filter(str_detect(order_tags, "1st Order")) %>%
-   unique() %>%
-   mutate(welcome = "~ Welcome to Get Hooked ~") %>% 
-   mutate(spacer_1= "~~~~~~~~",
-          spacer_2= "~~~~~~~~") %>% 
-   select(welcome, spacer_1, customer_name, spacer_2, pickup_site_label) %>% 
-   filter(!str_detect(pickup_site_label, "Home Delivery")) %>%
-   filter(!is.na(pickup_site_label)) %>% 
-   arrange(pickup_site_label)
- 
- 
+# * Button: OP Email List (Partner Email) ----------------------------------------------------------
+
+partner_email <- order_details %>% 
+  select(customer_email, partner_email) %>% 
+  unique() %>% 
+  filter(!is.na(partner_email))
+
+# * Button: Download New Member Labels -------------------------------------------------------------
+
+cooler_bag_label <- subscription %>% 
+  filter(str_detect(order_tags, "1st Order")) %>%
+  unique() %>%
+  mutate(welcome = "~ Welcome to Get Hooked ~") %>% 
+  mutate(spacer_1= "~~~~~~~~",
+         spacer_2= "~~~~~~~~") %>% 
+  select(welcome, spacer_1, customer_name, spacer_2, pickup_site_label) %>% 
+  filter(!str_detect(pickup_site_label, "Home Delivery")) %>%
+  filter(!is.na(pickup_site_label)) %>% 
+  arrange(pickup_site_label)
+
+
 # 4.2 Checklists ====================================================================================
 
- label_list <- lapply(delivery_day_levels, generate_checklists) %>%
-   `names<-`(delivery_day_levels_abb)
+label_list <- lapply(delivery_day_levels, generate_checklists) %>%
+  `names<-`(delivery_day_levels_abb)
 
 # 4.3 Home Deliveries ===============================================================================
 
- all_home_delivery <- subscription %>% 
-   filter(str_detect(pickup_site_label, "Home Delivery")) %>% 
-#   select(email, location, delivery_day) %>% 
-#   left_join(shopify_customers, by = "email") %>% 
-   select(customer_name, address, city, state, zip, phone, notes = delivery_notes, customer_email, delivery_day)
+all_home_delivery <- subscription %>% 
+  filter(str_detect(pickup_site_label, "Home Delivery")) %>% 
+  select(customer_name, address, city, state, zip, phone, notes = delivery_notes, customer_email, delivery_day)
 
-  
+
 
 ## Main Share Labels
 
@@ -386,9 +357,6 @@ share <- labels %>%
 ## Flashsales
 
 flashsales <- rbind_active_deliveries(type = "Flashsales") %>%
-  mutate(share_type = as.character(share_type),
-         share_size = as.character(share_size),
-         Timestamp = as.character(Timestamp)) %>% 
   ## New member labels are sometimes pasted into Flashsalse spreadsheets for printing purposes.
   ## The first column will be ~ Welcome to Get Hooked ~. Filter out those labels according to these keywords
   filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
@@ -419,18 +387,15 @@ HD_details <- order_details %>%
 deliveries_to_complete <- rbind(labels     %>% select(customer_name, pickup_site_label, check),
                                 flashsales %>% select(customer_name, pickup_site_label, check)) %>% #day, name, pickupsite label
   filter(str_detect(pickup_site_label, "Home Delivery")) %>%
-  # left_join(subscription %>% select(customer_name, address, city, state, zip, phone, notes = delivery_notes, 
-  #                                   customer_email, delivery_day)) %>% #pickup_day, restriction, production day
   left_join(HD_details %>% select(customer_name, address = address1, city, state, zip, phone, notes = homedelivery_instructions, 
-                                    customer_email, delivery_day)) %>% #pickup_day, restriction, production day
+                                  customer_email, delivery_day)) %>% #pickup_day, restriction, production day
   left_join(share,             by = c("delivery_day", "customer_name")) %>% #species, sharesize
   left_join(has_drygoods,      by = c("delivery_day", "customer_name")) %>%
-#  left_join(all_home_delivery, by = c("delivery_day", "name")) %>% #customer details
   mutate(delivery_date = today()) %>%
   mutate(all_dry  = replace_na(all_dry, ""),
          notes = str_replace(notes,"&#039;","")) %>%
   distinct() 
-  
+
 
 
 
@@ -438,12 +403,12 @@ deliveries_to_complete <- rbind(labels     %>% select(customer_name, pickup_site
 deliveries_label <- deliveries_to_complete %>%
   select(delivery_day, share_size, species, customer_name, delivery_date, all_dry) %>%
   mutate(spacer_1 = "~", spacer_2 = "~", spacer_label = "~")
- 
- 
+
+
 # * Tab: Check Address ------------------------------------------------------------------------------
 check_address <- deliveries_to_complete %>%
   filter(is.na(address) | address == "")
- 
+
 # * Tab: Routesavvy File/Button: Download Routesavvy File -------------------------------------------
 deliveries_routesavvy <- deliveries_to_complete %>%
   select(delivery_day, folder = delivery_date, customer_name, address,
@@ -456,7 +421,7 @@ orders_ED_SO <- shopify_orders %>%
   ## filter out main share orders
   filter(deadline_type %in% c("Early Deadline", "Special Order")) %>% 
   unite("timestamp", order_date, order_time, sep = " ") %>% 
-
+  
   ## turning multiples to individal lines except oysters
   mutate(variant_name = ifelse(str_detect(tolower(product_name), "oyster"), quantity, variant_name),
          quantity = ifelse(str_detect(tolower(product_name), "oyster"), 1, quantity)) %>% 
@@ -465,7 +430,6 @@ orders_ED_SO <- shopify_orders %>%
   ## data cleaning
   mutate(share_type = replace_na(product_name, "") %>% trimws) %>% 
   mutate(share_size = ifelse(variant_name == "", 1, variant_name) %>% trimws) %>% 
-#  mutate(source = "Store")
   mutate(source = packing_method)
 
 
@@ -523,7 +487,7 @@ fresh_product_all <- fresh_product_by_day %>%
   summarise(total_number = sum(total_number)) %>%
   select(share_type, total_number, size_unit) %>% 
   arrange(share_type)
-  
+
 # * Tab: TUE/WED/THU/LA orders ----------------------------------------------------------------------
 all_preorders_SO <- orders_ED_SO %>%
   filter(str_detect(deadline_type, "Special Order")) %>%
@@ -547,8 +511,8 @@ route <-  read_csv(gs_url(ss = ss["home_delivery"], sheets_id = "2080672642")) %
 dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
   filter(!str_detect(Timestamp, "~") | !Timestamp == "welcome" | is.na(Timestamp)) %>%
   filter(share_type != "") %>%
-  mutate(share_type = ifelse(!is.na(order) & str_detect(order, "Fillet"), 
-                             str_remove(order, " - .*"), share_type)) %>%
+  # mutate(share_type = ifelse(!is.na(order) & str_detect(order, "Fillet"), 
+  #                            str_remove(order, " - .*"), share_type)) %>%
   mutate(instructions_1 = "",
          instructions_2 = "") %>%
   mutate(customer_name = as.character(customer_name)) %>%
@@ -563,7 +527,7 @@ dry_goods <- rbind_active_deliveries(type = "Flashsales") %>%
           pickup_site_label, customer_name, share_type) %>% 
   select(Timestamp, customer_email, customer_name, spacer_1, share_type, share_size, 
          spacer_2, pickup_site_label, date, instructions_1, instructions_2, source, 
-         order, price, delivery_day, PSL)
+         delivery_day, PSL)
 
 route_labels <- dry_goods %>%
   filter(!str_detect(source, "Cooler")) %>% 
@@ -576,12 +540,12 @@ route_labels <- dry_goods %>%
 
 # 6. Import Modules =================================================================================
 
- source(file.path("modules", "main-shares-module.R"))
- source(file.path("modules", "species-assignment-module.R"))
- source(file.path("modules", "early-orders-module.R"))
- source(file.path("modules", "special-orders-module.R"))
- source(file.path("modules", "checklists-module.R"))
- source(file.path("modules", "home-delivery-module.R"))
- source(file.path("modules", "submodules.R"))
- source(file.path("modules", "errors-module.R"))
+source(file.path("modules", "main-shares-module.R"))
+source(file.path("modules", "species-assignment-module.R"))
+source(file.path("modules", "early-orders-module.R"))
+source(file.path("modules", "special-orders-module.R"))
+source(file.path("modules", "checklists-module.R"))
+source(file.path("modules", "home-delivery-module.R"))
+source(file.path("modules", "submodules.R"))
+source(file.path("modules", "errors-module.R"))
 

@@ -29,13 +29,11 @@ Checklists_Server <- function(id) {
         
         Active_Deliveries <- read_gs_para(ss = ss["active_deliveries"], 
                                           Active_Deliveries_id, 
-                                          Active_Deliveries_names)
+                                          Active_Deliveries_names) %>% 
+                             clean_colnames_AD()
         
         label_list <- lapply(delivery_day_levels, generate_checklists) %>%
           `names<-`(delivery_day_levels_abb)
-        
-        # wrong_list <- lapply(label_list, function(x) {x$wrong_list}) %>%
-        #   do.call(rbind, .) %>% `row.names<-`(NULL)
         
         removeModal()
         session$reload()
@@ -57,14 +55,7 @@ Checklists_Server <- function(id) {
           type = rep(c("Kitchen", "Site"), length(delivery_day_levels_abb)),
           SIMPLIFY = FALSE,
           USE.NAMES = FALSE) %>%
-          
-          ## appending "Wrong Entries" tab after kichen/site list tabs
-          # append(list(
-          #   tabPanel(
-          #     "Wrong Entries", 
-          #     dataTableOutput(session$ns("wrong_list"))
-          #     )
-          #   )) %>%
+
            do.call(tabsetPanel, .)
       })
 
@@ -82,11 +73,6 @@ Checklists_Server <- function(id) {
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE)
       
-      # * Tab: Wrong Entries ------------------------------------------------------------
-      # output$wrong_list <- renderDataTable({
-      #   datatable(wrong_list, width = "100%",
-      #             options = datatable_options)
-      #   })
       }
     )
 }

@@ -136,6 +136,7 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
   abb <- toupper(substr(deliv_day, 1, 3))
 
   subscription_check <- Active_Deliveries[[paste0("Labels_", abb)]] %>%
+    select(1:14) %>% 
     ## Fix column names if there are accidental edits
     `colnames<-`(c("customer_name", 
                    "spacer_1", 
@@ -160,24 +161,25 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
   
 #  flashsale_check <- Active_Deliveries[[paste0("Flashsales_", "THU")]] %>%
   flashsale_check <- Active_Deliveries[[paste0("Flashsales_", abb)]] %>%
+#    select(1:17) %>% 
     ## Fix column names if there are accidental edits
-    `colnames<-`(c("Timestamp",
-                   "customer_email",
-                   "customer_name",
-                   "spacer_1",
-                   "share_type",
-                   "share_size",
-                   "spacer_2",
-                   "pickup_site_label",
-                   "date",
-                   "instructions_1",
-                   "instructions_2",
-                   "source",
-                   "delivery_day",
-                   "name_form",
-                   "order",
-                   "price",
-                   "schedule")) %>%
+    # `colnames<-`(c("Timestamp",
+    #                "customer_email",
+    #                "customer_name",
+    #                "spacer_1",
+    #                "share_type",
+    #                "share_size",
+    #                "spacer_2",
+    #                "pickup_site_label",
+    #                "date",
+    #                "instructions_1",
+    #                "instructions_2",
+    #                "source",
+    #                "delivery_day",
+    #                "name_form",
+    #                "order",
+    #                "price",
+    #                "schedule")) %>%
     mutate(Timestamp = as.character(Timestamp),
            customer_name = as.character(customer_name)) %>%
     ## New member labels are sometimes pasted into Flashsalse spreadsheets for printing purposes.
@@ -251,36 +253,40 @@ generate_checklists <- function(deliv_day = delivery_day_levels) {
 ## Combine sheets in Active Deliveries by rows
 rbind_active_deliveries <- function(type = c("Labels", "Flashsales")) {
   
-  if(type == "Labels") {
-    colNames <- c(
-      "customer_name", "spacer_1", "share_size", "species", "caught_by",
-      "gear_type", "landing_port", "spacer_2", "expiration_day", "instructions",
-      "spacer_3", "pickup_site_label", "next_delivery", "home_delivery_name"
-    )
-  }
-  else {
-    colNames <- (c("Timestamp",
-                   "customer_email",
-                   "customer_name",
-                   "spacer_1",
-                   "share_type",
-                   "share_size",
-                   "spacer_2",
-                   "pickup_site_label",
-                   "date",
-                   "instructions_1",
-                   "instructions_2",
-                   "source",
-                   "delivery_day",
-                   "name_form",
-                   "order",
-                   "price",
-                   "schedule"))
-  }
+  # if(type == "Labels") {
+  #   colNames <- c(
+  #     "customer_name", "spacer_1", "share_size", "species", "caught_by",
+  #     "gear_type", "landing_port", "spacer_2", "expiration_day", "instructions",
+  #     "spacer_3", "pickup_site_label", "next_delivery", "home_delivery_name"
+  #   )
+  #   position <- c(1:14)
+  # }
+  # else {
+  #   colNames <- (c("Timestamp",
+  #                  "customer_email",
+  #                  "customer_name",
+  #                  "spacer_1",
+  #                  "share_type",
+  #                  "share_size",
+  #                  "spacer_2",
+  #                  "pickup_site_label",
+  #                  "date",
+  #                  "instructions_1",
+  #                  "instructions_2",
+  #                  "source",
+  #                  "delivery_day",
+  #                  "name_form",
+  #                  "order",
+  #                  "price",
+  #                  "schedule"))
+  #   position <- c(1:17)
+  # }
   
   lapply(delivery_day_levels, function(deliv_day) {
     Active_Deliveries[[paste0(type, "_", toupper(substr(deliv_day, 1, 3)))]] %>%
-      `colnames<-`(colNames) %>% mutate(delivery_day = deliv_day)}) %>%
+      # select(all_of(position)) %>% 
+      # `colnames<-`(colNames) %>% 
+    mutate(delivery_day = deliv_day)}) %>%
     do.call(rbind, .) %>%
     mutate(delivery_day = factor(delivery_day, levels = delivery_day_levels))
 }

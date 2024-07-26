@@ -90,3 +90,107 @@ printJS <- JS("function ( win ) {
               $(win.document.body).find( 'table tr td:first-child:empty, table tr td:nth-child(2):empty' )
                 .css( 'border-top', '0' );
               }")
+
+# DF Column Names ==================================================================================
+labels_colname <- c("customer_name", 
+                    "spacer_1", 
+                    "share_size", 
+                    "species",
+                    "caught_by",   
+                    "gear_type", 
+                    "landing_port", 
+                    "spacer_2", 
+                    "expiration_day", 
+                    "instructions",  
+                    "spacer_3", 
+                    "pickup_site_label", 
+                    "next_delivery", 
+                    "home_delivery_name")
+
+flashsales_colname <-c("Timestamp",
+                        "customer_email",
+                        "customer_name",
+                        "spacer_1",
+                        "share_type",
+                        "share_size",
+                        "spacer_2",
+                        "pickup_site_label",
+                        "date",
+                        "instructions_1",
+                        "instructions_2",
+                        "source",
+                        "delivery_day")
+#                        "name_form",
+#                        "order",
+#                        "price",
+#                        "schedule")
+
+orders_colNames <- c("order_id", 
+                      "order_date", 
+                      "order_time",
+                      "customer_id",
+                      "customer_name",
+                      "customer_email",
+                      "product_name", 
+                      "variant_name",
+                      "vendor",
+                      "quantity",
+                      "price",
+                      "deadline_type",
+                      "inventory_type",
+                      "size",
+                      "size_unit",
+                      "packing_method",
+                      "checklist_notation",
+                      "sku",
+                      "order_tags",
+                      "prod_day",
+                      "product_tags"
+                    )
+
+subscription_colNames <- c("order_id", 
+                          "order_date", 
+                          "order_time", 
+                          "customer_email",
+                          "subscription_size",
+                          "product_tag",
+                          "order_tag",
+                          "customer_name"
+                        )
+
+order_status_colNames <- c(
+  "order_id", 
+  "orderCreatedAt", 
+  "orderEmail", 
+  "orderLineItems",
+  "order_tags",
+  "orderStatus",
+  "orderCancelledAt",
+  "orderLineItemsID",
+  "orderURL"
+)
+
+customers_colNames <- c(
+  "customer_id",
+  "customer_email",
+  "customer_name",
+  "share_size",
+  "pickup_location",
+  "pickup_site",
+  "opt_out",
+  "delivery_day",
+  "address1",
+  "address2",
+  "city",
+  "state",
+  "zip",
+  "phone",
+  "email_verified",
+  "customer_tags",
+  "partner_email", 
+  "deliv_week_day",
+  "order_count",
+  "homedelivery_instructions",
+  "customer_created_at",
+  "customer_updated_at"
+)

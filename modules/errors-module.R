@@ -101,7 +101,8 @@ Errors_Server <- function(id) {
       # * Find missing orders (orders that are in Shopify but not in Shopify orders)
       
       sequence <- order_sync %>% 
-        mutate(id_number = as.numeric(str_extract(order_id, "[0-9]+")))
+        mutate(id_number = as.numeric(str_extract(order_id, "[0-9]+"))) %>% 
+        filter(!is.na(id_number))
       
       seq2 <- min(sequence$id_number):max(sequence$id_number)
       

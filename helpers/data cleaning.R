@@ -15,77 +15,62 @@ new_member_cutoff <- function(df) {
 }
 
 
+clean_colnames_AD <- function(df_list){
+  df_list %>% 
+  imap(~ if(.y %in% paste0("Labels_", delivery_day_levels_abb)) {
+    .x %>% 
+      select(1:length(labels_colname)) %>% `colnames<-`(labels_colname) %>% mutate(across(everything(), as.character))
+  } else {
+    .x %>% 
+      select(1:length(flashsales_colname)) %>% `colnames<-`(flashsales_colname) %>% mutate(across(everything(), as.character))
+  })
+}
 
 # App(s): Main Shares, Species Assignment, Home Delivery
-clean_colname <- function(df, type) {
-  
+clean_colnames <- function(df, type) {
   
   if(type == "Orders") {
     
-    colNames <- c(
-      "order_id", 
-      "order_date", 
-      "order_time",
-      "customer_id",
-      "customer_name",
-      "customer_email",
-      "product_name", 
-      "variant_name",
-      "vendor",
-      "quantity",
-      "price",
-      "deadline_type",
-      "inventory_type",
-      "size",
-      "size_unit",
-      "packing_method",
-      "checklist_notation",
-      "sku",
-      "order_tags",
-      "prod_day",
-      "product_tags"
-    )
+    colNames <- orders_colNames
+    position <- c(1:length(orders_colNames))
     
-    position <- c(1:21)
+    colNumeric <- c("customer_id", "quantity", "price", "size")
+    
+    colCharacter <- c("order_id","order_date","order_time","customer_name","customer_email","product_name","variant_name","vendor","deadline_type","inventory_type","size_unit","packing_method","checklist_notation","sku","order_tags","prod_day","product_tags")
     
   }
   else if(type == "Subscription") {
     
-    colNames <- c(
-      "order_id", 
-      "order_date", 
-      "order_time", 
-      "customer_email",
-      "subscription_size",
-      "product_tag",
-      "order_tag",
-      "customer_name"
-    )
+    colNames <- subscription_colNames
     
-    position <- c(1:8)
+    position <- c(1:length(subscription_colNames))
+    
+    colNumeric <- c()
+    
+    colCharacter <- c("order_id","order_date","order_time","customer_email","subscription_size","product_tag","order_tag","customer_name")
   }
   
   # Order Sync Sheet
   else if(type == "Order_Status") {
     
-    colNames <- c(
-      "order_id", 
-      "orderCreatedAt", 
-      "orderEmail", 
-      "orderLineItems",
-      "order_tags",
-      "orderStatus",
-      "orderCancelledAt",
-      "orderLineItemsID",
-      "orderURL"
-    )
+    colNames <- order_status_colNames
     
-    position <- c(1:9)
+    position <- c(1:length(order_status_colNames))
+    
+    colNumeric <- c()
+    
+    colCharacter <- c("order_id","orderCreatedAt","orderEmail","orderLineItems","order_tags","orderStatus","orderCancelledAt","orderLineItemsID","orderURL")
+    
   }
   ## Customers
   else {
-    colNames <- c(
-      "customer_id",
+    colNames <- customers_colNames
+    
+    position <- c(1:length(customers_colNames))
+    
+    colNumeric <- c("customer_id", "order_count","email_verified")
+    
+    colCharacter <- c(
       "customer_email",
       "customer_name",
       "share_size",
@@ -99,23 +84,21 @@ clean_colname <- function(df, type) {
       "state",
       "zip",
       "phone",
-      "email_verified",
       "customer_tags",
       "partner_email", 
       "deliv_week_day",
-      "order_count",
       "homedelivery_instructions",
       "customer_created_at",
       "customer_updated_at"
     )
     
-    position <- c(1:22)
-    
   }
   
   df %>%
     select(all_of(position)) %>% 
-    `colnames<-`(colNames) 
+    `colnames<-`(colNames) %>% 
+    mutate_at(colNumeric, as.numeric) %>% 
+    mutate_if(negate(is.numeric), as.character)
   
 }
 
@@ -164,7 +147,6 @@ clean_customer <- function(df) {
 clean_subscription <- function(df) {
   
   df %>%
-    
     uncount(as.integer(quantity), .remove = FALSE, .id = "id") %>% 
     #share_size
     mutate(share_size = str_extract(product_name,"(\\w+)")) %>% 

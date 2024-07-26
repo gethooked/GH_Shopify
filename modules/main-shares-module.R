@@ -130,28 +130,16 @@ Main_Shares_Server <- function(id) {
                            is_1st_species = FALSE) 
       })
       
- #      subs_all <- reactive({
- # #       temp <- weekly_species4() %>%
- #                temp2<-weekly_species11 %>% 
- #          left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>% 
- #          mutate(species_choice = ifelse(!is.na(share_upgrade), 
- #                                         as.character(share_upgrade), ""))%>%
- #          mutate(species = if_else(is.na(species_choice) | species_choice == "", 
- #                                   species, species_choice)) %>% 
- #          mutate(species = trimws(species)) %>% 
- #          mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
- #        
- #      })
       
       subs_all <- reactive({
         temp <- weekly_species4() %>%
-   #     temp2<-weekly_species11 %>%
+#        temp2<-weekly_species11 %>%
           left_join(flashsales_Main_shares %>% filter(species_choice != "")) %>%
           mutate(share_upgrade = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_upgrade)) %>%
           mutate(share_type2 = ifelse(str_detect(share_type1, "Extra Catch"), NA, share_type2)) %>% 
           mutate(species_choice = ifelse(!is.na(share_upgrade),
                                          as.character(share_upgrade), "")) %>%
-          mutate(species = if_else(is.na(species_choice) | species_choice == "",
+          mutate(species = if_else(is.na(as.character(species_choice)) | species_choice == "",
                                    species, species_choice)) %>%
           mutate(species = trimws(species)) %>%
           mutate(share_type = ifelse(is.na(share_type2), share_type1, paste(share_type1, share_type2)))
@@ -168,7 +156,7 @@ Main_Shares_Server <- function(id) {
       
       # Tab: Share Counts -------------------------------------------------------------------
       share_count <- reactive({
-        weekly_species() %>%
+       weekly_species() %>%
 #          temp4<-  temp3 %>% 
           group_by(delivery_day, share_size, species) %>% 
           tally() %>% 
@@ -178,12 +166,12 @@ Main_Shares_Server <- function(id) {
       # Tab: Amounts Assigned  --------------------------------------------------------------
       share_fillet <- reactive({
         share_count() %>%
-#          temp5<-temp4 %>% 
+ #         temp5<-temp4 %>% 
           mutate(type = str_extract(tolower(species), type_list)) %>%
           mutate(type = ifelse(tolower(species) %in% flash_fillet, NA_character_, type)) %>%
           mutate(type_singular = singularize(type)) %>%
           ## "F" sign: total weights are calculated using fillet portions
-          mutate(fillet_sign = ifelse(is.na(type_singular),"<sup class='sup-fillet'>F</sup>", ""))%>%
+          mutate(fillet_sign = ifelse(is.na(type_singular),"<sup class='sup-fillet'>F</sup>", "")) %>%
           ## Co
           mutate(type_singular = ifelse(is.na(type_singular), input$weight, type_singular)) %>%
           left_join(share_size_variant, by = c("type_singular", "share_size"))%>%
@@ -192,6 +180,8 @@ Main_Shares_Server <- function(id) {
           mutate(total_amount = n * as.numeric(share_size_estimate))%>%
           group_by(delivery_day, species, fillet_sign) %>% 
           summarise(sum = sum(total_amount))
+          
+          
         
       })
       
