@@ -1,4 +1,4 @@
-#current version 05/26/2023
+#current version 09/26/2024
 
 library(shiny)
 library(shinyjs)
@@ -11,6 +11,7 @@ library(DT)
 library(parallel)
 library(readxl)
 library(ngram)
+library(kableExtra)
 
 # 1. Configuration ==========================================================================
 
@@ -193,7 +194,9 @@ share_size_variant <- Product_KEYS$Share_Size_Variant %>%
 ## Used in Main_Shares_Server and Species_Assignment_Server
 type_list <- unique(c(share_size_variant$type,
                       share_size_variant$type_singular))%>% 
-  paste(collapse = "|")
+  paste(collapse = "|") %>% 
+  str_replace_all("\\(", "\\\\(") %>% 
+  str_replace_all("\\)", "\\\\)")
 
 
 ## Choices of "Select Species" drop-down list in the sidebar

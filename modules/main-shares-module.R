@@ -149,7 +149,7 @@ Main_Shares_Server <- function(id) {
       # Tab: All Main Shares ----------------------------------------------------------------
       weekly_species <- reactive({
         subs_all() %>%
- #       temp3<-  temp2 %>% 
+#       temp3<-  temp2 %>% 
           select(customer_name, species, share_size, pickup_site, delivery_day, share_type) %>% 
           arrange(delivery_day, species, share_size, pickup_site)
       })
@@ -166,9 +166,9 @@ Main_Shares_Server <- function(id) {
       # Tab: Amounts Assigned  --------------------------------------------------------------
       share_fillet <- reactive({
         share_count() %>%
- #         temp5<-temp4 %>% 
+ #      temp5<-temp4 %>% 
           mutate(type = str_extract(tolower(species), type_list)) %>%
-          mutate(type = ifelse(tolower(species) %in% flash_fillet, NA_character_, type)) %>%
+         # mutate(type = ifelse(tolower(species) %in% flash_fillet, NA_character_, type)) %>%
           mutate(type_singular = singularize(type)) %>%
           ## "F" sign: total weights are calculated using fillet portions
           mutate(fillet_sign = ifelse(is.na(type_singular),"<sup class='sup-fillet'>F</sup>", "")) %>%
